@@ -146,6 +146,7 @@ nav button.sel{color:var(--gold)}
       <p>Saisis les vrais scores et coche les bonnes réponses bonus : points et classement se mettent à jour instantanément, et tout reste enregistré sur cet appareil.</p>
       <button class="btn admin-only" id="btn-publish" disabled>Publier les résultats</button>
       <button class="btn" id="btn-share">Partager le lien avec résultats</button>
+      <button class="btn ghost" id="btn-refresh-remote">Charger depuis GitHub</button>
       <div class="tokenbox admin-only" style="margin-top:8px; display:flex; gap:8px; align-items:center">
         <button class="btn ghost" id="btn-token">Saisir token GitHub</button>
         <button class="btn ghost" id="btn-token-clear">Supprimer token</button>
@@ -421,6 +422,12 @@ document.getElementById('btn-share').onclick=()=>{
     ()=>toast('Lien copié ✓ — envoie-le au groupe'),
     ()=>{prompt('Copie ce lien :',url);}
   );
+};
+
+document.getElementById('btn-refresh-remote').onclick=()=>{
+  try{ localStorage.removeItem(SKEY); }catch(e){}
+  toast('Chargement depuis GitHub…');
+  setTimeout(()=>location.reload(),300);
 };
 
 function getGithubToken(){
