@@ -297,6 +297,69 @@ function pointsFor(pred,res){
   return 0;
 }
 const QPTS = {}; DB.questions.forEach(q=>QPTS[q.row]=q.pts);
+
+/* ---------- auto-calc group standings & 1/16 from match results ---------- */
+const GROUP_ROWS = {};
+for(const row in DB.matches){
+  const letter = DB.matches[row].label.split(' ')[1];
+  (GROUP_ROWS[letter] = GROUP_ROWS[letter]||[]).push(row);
+}
+
+// Returns {order:[t1..t4], stats:{team:{pts,gd,gf}}} or null if matches missing
+function computeGroupStats(g){
+  const rows = GROUP_ROWS[g]||[];
+  if(rows.length===0) return null;
+  const stats = {};
+  for(const row of rows){
+    const res = results[row];
+    if(!Array.isArray(res)) return null;
+    const m = DB.matches[row];
+    for(const t of [m.t1,m.t2]) if(!stats[t]) stats[t]={pts:0,gd:0,gf:0};
+    const a=res[0], b=res[1];
+    stats[m.t1].gf+=a; stats[m.t1].gd+=a-b;
+    stats[m.t2].gf+=b; stats[m.t2].gd+=b-a;
+    if(a>b) stats[m.t1].pts+=3;
+    else if(a<b) stats[m.t2].pts+=3;
+    else { stats[m.t1].pts++; stats[m.t2].pts++; }
+  }
+  const order = Object.keys(stats).sort((x,y)=>
+    stats[y].pts-stats[x].pts || stats[y].gd-stats[x].gd || stats[y].gf-stats[x].gf || x.localeCompare(y));
+  return {order, stats};
+}
+
+// Manual admin entry wins over auto-calc (tie-breaks fair-play / head-to-head)
+function effectiveGroupOrder(g){
+  const manual = groupsReal[g];
+  if(manual && manual.some(Boolean)) return {teams:manual, auto:false};
+  const comp = computeGroupStats(g);
+  return comp ? {teams:comp.order, auto:true} : null;
+}
+
+// 32 qualified for round of 32: 12 winners + 12 runners-up + 8 best thirds
+function computeKo16(){
+  const firsts=[], seconds=[], thirds=[];
+  for(const g of GROUP_LETTERS){
+    const st = computeGroupStats(g);
+    if(!st) return null;
+    const manual = groupsReal[g];
+    const order = (manual && manual.every(Boolean)) ? manual : st.order;
+    firsts.push(order[0]); seconds.push(order[1]);
+    const t3 = order[2], s3 = st.stats[t3] || {pts:0,gd:0,gf:0};
+    thirds.push({team:t3, pts:s3.pts, gd:s3.gd, gf:s3.gf});
+  }
+  thirds.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||a.team.localeCompare(b.team));
+  return firsts.concat(seconds, thirds.slice(0,8).map(t=>t.team));
+}
+
+function effectiveKo(phase){
+  const manual = koReal[phase];
+  if(manual && manual.length>0) return {teams:manual, auto:false};
+  if(phase==='ko16'){
+    const comp = computeKo16();
+    if(comp) return {teams:comp, auto:true};
+  }
+  return null;
+}
 function totals(){
   const t = {};
   DB.players.forEach(p=>{ t[p]={pts:0,exact:0,good:0,bonus:0}; });
@@ -313,21 +376,22 @@ function totals(){
     const pts = QPTS[qrow]||0;
     (bonus[qrow]||[]).forEach(p=>{ if(t[p]){t[p].pts+=pts; t[p].bonus+=pts;} });
   }
-  // Group standings: 6 pts per correct position
-  for(const g in groupsReal){
-    const actual = groupsReal[g];
-    if(!actual||actual.length<4) continue;
+  // Group standings: 6 pts per correct position (manual or auto-calc)
+  GROUP_LETTERS.forEach(g=>{
+    const eff = effectiveGroupOrder(g);
+    if(!eff) return;
+    const actual = eff.teams;
     DB.players.forEach(p=>{
       const pred=(DB.groups[g]||{})[p]||[];
       for(let i=0;i<4;i++){ if(pred[i]&&actual[i]&&pred[i]===actual[i]) t[p].pts+=6; }
     });
-  }
-  // KO phases
+  });
+  // KO phases (ko16 can be auto-calculated)
   const KO_PTS={ko16:5,ko8:9,ko4:15,ko2:22,final:33};
   for(const phase in KO_PTS){
-    const actual=koReal[phase];
-    if(!actual||actual.length===0) continue;
-    const actualSet=new Set(actual);
+    const eff=effectiveKo(phase);
+    if(!eff) continue;
+    const actualSet=new Set(eff.teams);
     DB.players.forEach(p=>{
       const pred=(DB.ko[phase]||{})[p]||[];
       pred.forEach(team=>{ if(actualSet.has(team)) t[p].pts+=KO_PTS[phase]; });
@@ -431,7 +495,7 @@ function onScoreInput(ev){
   pair[side]= v===''?null:Math.max(0,Math.min(20,parseInt(v,10)||0));
   if(pair[0]!=null && pair[1]!=null){ results[row]=pair; delete drafts[row]; }
   else { delete results[row]; drafts[row]=pair; }
-  persist(); renderDay(); renderLB(); refreshEntryCounts();
+  persist(); renderDay(); renderLB(); refreshEntryCounts(); renderPhases();
 }
 function refreshEntryCounts(){
   document.querySelectorAll('#entrylist .daygroup').forEach((g,di)=>{
@@ -571,21 +635,30 @@ function renderGrpTabs(){
 
 function renderGrpContent(){
   const el=document.getElementById('grp-content'); el.innerHTML='';
-  const g=selGroup, actual=groupsReal[g]||[null,null,null,null];
-  const hasResult=actual.some(x=>x);
+  const g=selGroup;
+  const eff=effectiveGroupOrder(g);
+  const actual=eff?eff.teams:[null,null,null,null];
+  const hasResult=!!eff;
+  const manual=groupsReal[g]||[null,null,null,null];
 
   if(adminMode){
     const block=document.createElement('div'); block.className='admin-block';
-    block.innerHTML='<label>Classement réel groupe '+g+' (6 pts par position correcte)</label>';
+    const autoNote = (eff&&eff.auto)
+      ? ' — <span style="color:var(--win)">calculé automatiquement</span>, remplir uniquement pour corriger un départage'
+      : '';
+    block.innerHTML='<label>Classement réel groupe '+g+' (6 pts par position correcte)'+autoNote+'</label>';
     const inputs=document.createElement('div'); inputs.className='admin-grp-inputs';
     POS_LABELS.forEach((pos,i)=>{
       const d=document.createElement('div');
       d.innerHTML='<div class="admin-grp-lbl">'+pos+'</div>';
       const inp=document.createElement('input'); inp.className='admin-grp-inp';
-      inp.type='text'; inp.placeholder='Équipe…'; inp.value=actual[i]||'';
+      inp.type='text';
+      inp.placeholder=(eff&&eff.auto&&actual[i])?actual[i]+' (auto)':'Équipe…';
+      inp.value=manual[i]||'';
       inp.onchange=()=>{
         if(!groupsReal[g]) groupsReal[g]=[null,null,null,null];
         groupsReal[g][i]=inp.value.trim()||null;
+        if(!groupsReal[g].some(Boolean)) delete groupsReal[g];
         renderGrpContent(); renderLB();
       };
       d.appendChild(inp); inputs.appendChild(d);
@@ -617,7 +690,14 @@ function renderGrpContent(){
   if(hasResult){
     const info=document.createElement('div');
     info.style.cssText='font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:8px';
-    info.textContent='Résultat : '+actual.filter(Boolean).join(' · ');
+    info.textContent='Classement'+(eff.auto?' (auto)':'')+' : '+actual.filter(Boolean).join(' · ');
+    el.insertBefore(info,wrap);
+  } else {
+    const rows=GROUP_ROWS[g]||[];
+    const done=rows.filter(r=>Array.isArray(results[r])).length;
+    const info=document.createElement('div');
+    info.style.cssText='font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:8px';
+    info.textContent='Classement auto dès que les 6 matchs sont corrigés ('+done+'/'+rows.length+')';
     el.insertBefore(info,wrap);
   }
 }
@@ -644,25 +724,39 @@ function renderKoContent(){
   const el=document.getElementById('ko-content'); el.innerHTML='';
   if(selKoPhase==='podium'){ renderPodiumContent(); return; }
   const ph=KO_PHASES.find(x=>x.key===selKoPhase);
-  const actual=koReal[selKoPhase]||[];
+  const eff=effectiveKo(selKoPhase);
+  const actual=eff?eff.teams:[];
   const actualSet=new Set(actual);
   const hasResult=actual.length>0;
+  const isAuto=!!(eff&&eff.auto);
 
   if(adminMode){
     const block=document.createElement('div'); block.className='admin-block';
-    block.innerHTML='<label>Qualifiés réels en '+ph.label+' (séparés par des virgules) — '+ph.pts+' pts chaque</label>';
+    const autoNote = isAuto
+      ? ' — <span style="color:var(--win)">32 qualifiés calculés automatiquement</span>, remplir uniquement pour corriger'
+      : (selKoPhase==='ko16'?' — auto dès que les 72 matchs de poules sont corrigés':'');
+    block.innerHTML='<label>Qualifiés réels en '+ph.label+' (séparés par des virgules) — '+ph.pts+' pts chaque'+autoNote+'</label>';
     const ta=document.createElement('textarea'); ta.className='admin-ko-area';
-    ta.value=actual.join(', ');
+    ta.value=(koReal[selKoPhase]||[]).join(', ');
+    if(isAuto) ta.placeholder=actual.join(', ');
     ta.onchange=()=>{
       const teams=ta.value.split(',').map(s=>s.trim()).filter(Boolean);
-      koReal[selKoPhase]=teams;
+      if(teams.length>0) koReal[selKoPhase]=teams;
+      else delete koReal[selKoPhase];
       renderKoContent(); renderLB();
     };
     block.appendChild(ta); el.appendChild(block);
-  } else if(hasResult){
+  }
+  if(hasResult){
     const info=document.createElement('div');
     info.style.cssText='font-size:.68rem;color:var(--muted);margin-bottom:8px;line-height:1.6';
-    info.textContent=actual.join(' · ');
+    info.textContent='Qualifiés'+(isAuto?' (auto)':'')+' : '+actual.join(' · ');
+    el.appendChild(info);
+  } else if(selKoPhase==='ko16'&&!adminMode){
+    const corrected=Object.keys(results).filter(k=>Array.isArray(results[k])).length;
+    const info=document.createElement('div');
+    info.style.cssText='font-size:.68rem;color:var(--muted);margin-bottom:8px';
+    info.textContent='Qualifiés auto dès que les 72 matchs de poules sont corrigés ('+corrected+'/72)';
     el.appendChild(info);
   }
 
