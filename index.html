@@ -553,6 +553,47 @@ document.querySelectorAll('nav button').forEach(b=>{
 setAdminMode(false);
 init();
 
+/* ---------- remote polling for automatic updates ---------- */
+let _lastRemoteSig = null;
+let _remotePollRunning = false;
+
+function _makeClean(obj){ const c={}; if(obj && obj.r) c.r = obj.r; else if(obj) c.r = obj; if(obj && obj.b) c.b = obj.b; else if(obj && obj.b===undefined) c.b = {}; return c; }
+
+function _showRemoteBanner(remote){
+  if(document.getElementById('remoteUpdate')) return;
+  const div=document.createElement('div'); div.id='remoteUpdate';
+  div.style.position='fixed'; div.style.top='62px'; div.style.left='50%'; div.style.transform='translateX(-50%)';
+  div.style.zIndex='60'; div.style.background='var(--panel)'; div.style.border='1px solid var(--stroke)'; div.style.padding='8px 12px'; div.style.borderRadius='10px';
+  div.innerHTML = 'Nouveaux résultats disponibles — <button id="btn-reload-remote" class="btn">Recharger</button> <button id="btn-apply-remote" class="btn ghost">Appliquer localement</button> <button id="btn-ignore-remote" class="btn ghost">Ignorer</button>';
+  document.body.appendChild(div);
+  document.getElementById('btn-reload-remote').onclick=()=>{ try{ localStorage.removeItem(SKEY); }catch(e){} location.reload(); };
+  document.getElementById('btn-apply-remote').onclick=()=>{ try{ results = Object.assign({}, remote.r); bonus = Object.assign({}, remote.b || {}); persist(); renderDay(); renderEntry(); renderBonus(); renderLB(); toast('Résultats appliqués'); }catch(e){} document.getElementById('remoteUpdate')?.remove(); };
+  document.getElementById('btn-ignore-remote').onclick=()=>{ document.getElementById('remoteUpdate')?.remove(); };
+}
+
+async function startRemotePoll(){
+  if(_remotePollRunning) return; _remotePollRunning = true;
+  const POLL = 30 * 1000;
+  try {
+    const resp = await fetch('./resultats.json?_='+Date.now());
+    if(!resp.ok) return setTimeout(()=>{ _remotePollRunning=false; startRemotePoll(); }, POLL);
+    const remote = await resp.json();
+    const clean = _makeClean(remote);
+    const sig = JSON.stringify(clean);
+    if(_lastRemoteSig === null) _lastRemoteSig = sig;
+    else if(sig !== _lastRemoteSig){
+      _lastRemoteSig = sig;
+      // if user has local edits in localStorage, only notify; otherwise reload automatically
+      const hasLocal = !!localStorage.getItem(SKEY);
+      if(hasLocal) _showRemoteBanner(clean);
+      else location.reload();
+    }
+  } catch(e){}
+  setTimeout(()=>{ _remotePollRunning=false; startRemotePoll(); }, POLL);
+}
+
+startRemotePoll();
+
 /* déverrouillage automatique via lien admin */
 (()=>{
   const m = location.hash.match(/[#&]admin=([^&]+)/);
