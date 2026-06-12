@@ -179,8 +179,22 @@ const SKEY = 'pebroc2026_v2';
 
 /* ---------- state: seed < remote < localStorage < URL hash ---------- */
 let results = Object.assign({}, DB.seedResults);
-let bonus = {}; for(const k in DB.seedBonus){ bonus[k] = DB.seedBonus[k].slice(); }
+let correctAnswers = {};  // {qrow: "answer"}
+let bonus = {};  // calculated from correctAnswers
 let storageOK = true;
+
+function recalculateBonus(){
+  bonus = {};
+  for(const qrow in correctAnswers){
+    const correct = correctAnswers[qrow].toLowerCase().trim();
+    const matching = [];
+    DB.players.forEach(p=>{
+      const playerAnswer = (DB.answers[p][qrow] || '').toLowerCase().trim();
+      if(playerAnswer === correct) matching.push(p);
+    });
+    if(matching.length > 0) bonus[qrow] = matching;
+  }
+}
 
 function b64uEnc(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function b64uDec(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)));}
@@ -197,9 +211,13 @@ async function init(){
     if(resp.ok){
       const remote = await resp.json();
       if(remote.r) results = Object.assign(results, remote.r);
-      if(remote.b) bonus = Object.assign(bonus, remote.b);
+      if(remote.ca) correctAnswers = Object.assign({}, remote.ca);  // load correct answers
+      if(remote.b) bonus = Object.assign(bonus, remote.b);  // fallback for old format
     }
   } catch(e){}
+
+  /* recalculate bonus from correct answers */
+  recalculateBonus();
 
   /* 2. localStorage (overrides remote — corrections en cours) */
   // localStorage and URL hash import disabled: always use remote `resultats.json`
@@ -345,29 +363,66 @@ function renderBonus(){
       +'<span class="qok">'+(okCount? okCount+' ✓':'')+'</span>';
     head.onclick=()=>card.classList.toggle('open');
     const body=document.createElement('div'); body.className='q-body';
-    body.innerHTML='<div class="q-hint">Touche les réponses correctes pour attribuer les points :</div>';
-    const grid=document.createElement('div'); grid.className='agrid';
-    DB.players.forEach(p=>{
-      const a=DB.answers[p][q.row]||'—';
-      const cell=document.createElement('button');
-      const isOk=(bonus[q.row]||[]).includes(p);
-      cell.className='acell'+(isOk?' ok':'');
-      cell.innerHTML='<div class="pname">'+p+'</div><div class="aval">'+(a||'—')+'</div>';
-      if(adminMode){
-        cell.onclick=()=>{
-          const cur=bonus[q.row]||[];
-          bonus[q.row]= cur.includes(p) ? cur.filter(x=>x!==p) : cur.concat(p);
-          if(bonus[q.row].length===0) delete bonus[q.row];
-          persist(); renderBonus(); renderLB();
-          const reopened=[...document.querySelectorAll('.qcard')][DB.questions.indexOf(q)];
-          if(reopened) reopened.classList.add('open');
-        };
-      } else {
-        cell.disabled = true;
-      }
-      grid.appendChild(cell);
-    });
-    body.appendChild(grid);
+    
+    if(adminMode){
+      // Admin mode: input field for correct answer
+      body.innerHTML='<div class="q-hint">Rentre la bonne réponse :</div>';
+      const inputDiv=document.createElement('div');
+      inputDiv.style.marginBottom='12px';
+      const input=document.createElement('input');
+      input.type='text';
+      input.style.width='100%';
+      input.style.padding='8px 10px';
+      input.style.borderRadius='8px';
+      input.style.border='1px solid var(--stroke)';
+      input.style.background='var(--pitch)';
+      input.style.color='var(--chalk)';
+      input.style.fontFamily='Inter';
+      input.style.fontSize='.9rem';
+      input.placeholder='Ex: Mexique';
+      input.value = correctAnswers[q.row] || '';
+      input.onchange=()=>{
+        if(input.value.trim()){
+          correctAnswers[q.row] = input.value.trim();
+        } else {
+          delete correctAnswers[q.row];
+        }
+        recalculateBonus();
+        persist(); renderBonus(); renderLB();
+      };
+      inputDiv.appendChild(input);
+      body.appendChild(inputDiv);
+      
+      // Show matching players
+      const grid=document.createElement('div'); grid.className='agrid';
+      grid.style.marginTop='8px';
+      DB.players.forEach(p=>{
+        const a=DB.answers[p][q.row]||'—';
+        const cell=document.createElement('div');
+        const isOk=(bonus[q.row]||[]).includes(p);
+        cell.className='acell'+(isOk?' ok':'');
+        cell.style.cursor='default';
+        cell.innerHTML='<div class="pname">'+p+'</div><div class="aval">'+(a||'—')+'</div>';
+        grid.appendChild(cell);
+      });
+      body.appendChild(grid);
+    } else {
+      // Non-admin: show answer and matching players
+      body.innerHTML='<div class="q-hint">Bonne réponse: <b>'+(correctAnswers[q.row]||'—')+'</b></div>';
+      const grid=document.createElement('div'); grid.className='agrid';
+      grid.style.marginTop='8px';
+      DB.players.forEach(p=>{
+        const a=DB.answers[p][q.row]||'—';
+        const cell=document.createElement('div');
+        const isOk=(bonus[q.row]||[]).includes(p);
+        cell.className='acell'+(isOk?' ok':'');
+        cell.style.cursor='default';
+        cell.innerHTML='<div class="pname">'+p+'</div><div class="aval">'+(a||'—')+'</div>';
+        grid.appendChild(cell);
+      });
+      body.appendChild(grid);
+    }
+    
     card.appendChild(head); card.appendChild(body); list.appendChild(card);
   });
 }
@@ -442,7 +497,7 @@ document.getElementById('btn-publish').onclick=async()=>{
   try {
     const clean={};
     for(const k in results){ if(Array.isArray(results[k])) clean[k]=results[k]; }
-    const payload = JSON.stringify({r:clean,b:bonus}, null, 2);
+    const payload = JSON.stringify({r:clean,ca:correctAnswers}, null, 2);
     const token = getGithubToken();
     if(token){
       const content = btoa(unescape(encodeURIComponent(payload)));
@@ -460,7 +515,7 @@ document.getElementById('btn-publish').onclick=async()=>{
       const resp = await fetch('/publish', {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ r:clean, b:bonus })
+        body: JSON.stringify({ r:clean, ca:correctAnswers })
       });
       if(!resp.ok){ const err = await resp.text(); console.error(err); throw new Error('Erreur serveur'); }
       toast('Publié pour tous ✓');
@@ -541,7 +596,7 @@ function _showRemoteBanner(remote){
   div.innerHTML = 'Nouveaux résultats disponibles — <button id="btn-reload-remote" class="btn">Recharger</button> <button id="btn-apply-remote" class="btn ghost">Appliquer localement</button> <button id="btn-ignore-remote" class="btn ghost">Ignorer</button>';
   document.body.appendChild(div);
   document.getElementById('btn-reload-remote').onclick=()=>{ try{ localStorage.removeItem(SKEY); }catch(e){} location.reload(); };
-  document.getElementById('btn-apply-remote').onclick=()=>{ try{ results = Object.assign({}, remote.r); bonus = Object.assign({}, remote.b || {}); persist(); renderDay(); renderEntry(); renderBonus(); renderLB(); toast('Résultats appliqués'); }catch(e){} document.getElementById('remoteUpdate')?.remove(); };
+  document.getElementById('btn-apply-remote').onclick=()=>{ try{ results = Object.assign({}, remote.r); correctAnswers = Object.assign({}, remote.ca || {}); recalculateBonus(); persist(); renderDay(); renderEntry(); renderBonus(); renderLB(); toast('Résultats appliqués'); }catch(e){} document.getElementById('remoteUpdate')?.remove(); };
   document.getElementById('btn-ignore-remote').onclick=()=>{ document.getElementById('remoteUpdate')?.remove(); };
 }
 
