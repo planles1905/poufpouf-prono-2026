@@ -126,12 +126,14 @@ nav button{flex:1; background:none; border:none; color:var(--muted); font:inheri
   font-weight:700; letter-spacing:.05em; padding:10px 0 8px; cursor:pointer}
 nav button .ic{display:block; font-family:'Bebas Neue'; font-size:1.25rem; letter-spacing:.08em; margin-bottom:1px}
 nav button.sel{color:var(--gold)}
+#lastUpdate{font-size:.68rem; color:var(--muted); margin-top:3px; letter-spacing:.06em}
 </style>
 </head>
 <body>
 <header>
   <h1>POUFPOUF <span class="star">★</span> PRONO</h1>
   <small>Coupe du monde 2026 · 12 joueurs</small>
+  <div id="lastUpdate">—</div>
   <button id="btn-admin-lock" title="Mode admin">🔒</button>
 </header>
 
@@ -530,6 +532,10 @@ init();
 /* ---------- remote polling for automatic updates ---------- */
 let _lastRemoteSig = null;
 let _remotePollRunning = false;
+let _lastUpdateTime = null;
+
+function _formatTime(d){ const h=String(d.getHours()).padStart(2,'0'); const m=String(d.getMinutes()).padStart(2,'0'); const s=String(d.getSeconds()).padStart(2,'0'); return h+':'+m+':'+s; }
+function _updateLastUpdateUI(){ const el = document.getElementById('lastUpdate'); if(el) el.textContent = _lastUpdateTime ? 'Mise à jour : '+_formatTime(_lastUpdateTime) : '—'; }
 
 function _makeClean(obj){ const c={}; if(obj && obj.r) c.r = obj.r; else if(obj) c.r = obj; if(obj && obj.b) c.b = obj.b; else if(obj && obj.b===undefined) c.b = {}; return c; }
 
@@ -554,6 +560,8 @@ async function startRemotePoll(){
     const remote = await resp.json();
     const clean = _makeClean(remote);
     const sig = JSON.stringify(clean);
+    _lastUpdateTime = new Date();
+    _updateLastUpdateUI();
     if(_lastRemoteSig === null) _lastRemoteSig = sig;
     else if(sig !== _lastRemoteSig){
       _lastRemoteSig = sig;
@@ -574,6 +582,7 @@ document.addEventListener('visibilitychange', ()=>{
   }
 });
 
+_updateLastUpdateUI();
 startRemotePoll();
 
 /* déverrouillage automatique via lien admin */
