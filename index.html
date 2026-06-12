@@ -122,6 +122,46 @@ h2{font-family:'Bebas Neue'; font-size:1.15rem; letter-spacing:.12em; color:var(
 .btn.publish{background:#3B82F6;color:#fff}
 .btn.publish:disabled{opacity:.5}
 
+.ptabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.ptabs::-webkit-scrollbar{display:none}
+.ptab{flex:0 0 auto;padding:6px 12px;border-radius:999px;font-size:.78rem;font-weight:700;
+  background:var(--panel);border:1px solid var(--stroke);color:var(--muted);cursor:pointer;white-space:nowrap}
+.ptab.sel{background:var(--chalk);color:var(--pitch);border-color:var(--chalk)}
+.grp-wrap{background:var(--panel);border:1px solid var(--stroke);border-radius:13px;overflow:hidden;margin-bottom:10px}
+.grp-grid{display:grid;grid-template-columns:62px repeat(4,1fr);font-size:.68rem}
+.grp-hd{padding:5px 4px;background:var(--panel2);border-bottom:1px solid var(--stroke);
+  color:var(--muted);font-weight:700;text-align:center;font-size:.6rem;white-space:nowrap;overflow:hidden}
+.grp-hd:first-child{text-align:left;padding-left:8px}
+.grp-cell{padding:5px 3px;text-align:center;border-bottom:1px solid rgba(30,90,71,.3);
+  word-break:break-word;line-height:1.2;font-size:.66rem}
+.grp-cell:first-child{text-align:left;padding-left:8px;font-weight:700;color:var(--muted);font-size:.64rem}
+.grp-cell.hit{background:rgba(111,203,124,.2);color:var(--win);font-weight:700}
+.grp-cell.miss{opacity:.35}
+.admin-grp-inputs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px}
+.admin-grp-lbl{font-size:.6rem;color:var(--muted);font-weight:700;margin-bottom:2px}
+.admin-grp-inp{padding:5px 8px;border-radius:7px;border:1px solid var(--stroke);
+  background:var(--pitch);color:var(--chalk);font-family:inherit;font-size:.78rem;width:100%}
+.ko-row{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid rgba(30,90,71,.3)}
+.ko-row:last-child{border-bottom:none}
+.ko-pname{flex:0 0 52px;font-size:.68rem;font-weight:700;color:var(--muted);padding-top:3px}
+.ko-chips{display:flex;flex-wrap:wrap;gap:4px}
+.ko-chip{font-size:.62rem;font-weight:600;padding:3px 7px;border-radius:999px;
+  background:var(--pitch);border:1px solid var(--stroke);color:var(--chalk)}
+.ko-chip.hit{background:var(--win);border-color:var(--win);color:var(--win-ink)}
+.ko-chip.miss{opacity:.3}
+.pod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+@media(min-width:430px){.pod-grid{grid-template-columns:repeat(4,1fr)}}
+.pod-card{background:var(--panel);border:1px solid var(--stroke);border-radius:10px;padding:8px}
+.pod-name{font-size:.62rem;color:var(--muted);font-weight:700;margin-bottom:5px}
+.pod-row{font-size:.68rem;font-weight:600;line-height:1.7}
+.pod-row.hit{color:var(--win)}
+.pod-row.hit0{color:var(--gold)}
+.admin-ko-area{width:100%;padding:6px 8px;border-radius:7px;border:1px solid var(--stroke);
+  background:var(--pitch);color:var(--chalk);font-family:inherit;font-size:.76rem;
+  resize:vertical;min-height:60px}
+.admin-block{background:var(--panel2);border:1px solid var(--stroke);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.admin-block label{font-size:.68rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px}
+
 nav{position:fixed; bottom:0; left:0; right:0; z-index:30; display:flex;
   background:rgba(10,38,29,.97); backdrop-filter:blur(10px); border-top:1px solid var(--stroke);
   padding-bottom:env(safe-area-inset-bottom)}
@@ -165,14 +205,24 @@ nav button.sel{color:var(--gold)}
   <section id="view-lb" class="view">
     <div class="lb-meta" id="lbmeta"></div>
     <div id="lbrows"></div>
-    <div class="bareme">Barème poules : <b>13 pts</b> score exact · <i>6 pts</i> bon vainqueur ou nul · Bonus : <b>22 / 16 / 11 pts</b> selon la question<br>Phases finales : corrigées dans le fichier Excel en fin de tournoi</div>
+    <div class="bareme">Poules : <b>13 pts</b> exact · <i>6 pts</i> vainqueur/nul · Bonus : <b>22/16/11 pts</b><br>Phases finales : <i>6 pts</i> classement groupe · <b>5/9/15/22/33 pts</b> phase KO · Podium : <b>69/29/19 pts</b></div>
+  </section>
+
+  <section id="view-phases" class="view">
+    <h2>Classements de groupe</h2>
+    <div class="ptabs" id="grp-tabs"></div>
+    <div id="grp-content"></div>
+    <h2>Phase éliminatoire &amp; Podium</h2>
+    <div class="ptabs" id="ko-tabs"></div>
+    <div id="ko-content"></div>
   </section>
 </main>
 
 <nav>
-  <button data-v="day" class="sel"><span class="ic">⚽</span>Matchs du jour</button>
+  <button data-v="day" class="sel"><span class="ic">⚽</span>Matchs</button>
   <button data-v="entry"><span class="ic">0–0</span>Correction</button>
   <button data-v="lb"><span class="ic">№1</span>Classement</button>
+  <button data-v="phases"><span class="ic">★</span>Phases</button>
 </nav>
 <div class="toast" id="toast"></div>
 
@@ -180,11 +230,18 @@ nav button.sel{color:var(--gold)}
 const DB = {"matches": {"6": {"label": "Matchs A 1", "t1": "Mexique", "t2": "Afrique du Sud"}, "7": {"label": "Matchs A 2", "t1": "Mexique", "t2": "Corée du Sud"}, "8": {"label": "Matchs A 3", "t1": "Mexique", "t2": "Tchéquie"}, "9": {"label": "Matchs A 4", "t1": "Afrique du Sud", "t2": "Corée du Sud"}, "10": {"label": "Matchs A 5", "t1": "Afrique du Sud", "t2": "Tchéquie"}, "11": {"label": "Matchs A 6", "t1": "Corée du Sud", "t2": "Tchéquie"}, "13": {"label": "Matchs B 1", "t1": "Canada", "t2": "Bosnie Herzégovine"}, "14": {"label": "Matchs B 2", "t1": "Canada", "t2": "Qatar"}, "15": {"label": "Matchs B 3", "t1": "Canada", "t2": "Suisse"}, "16": {"label": "Matchs B 4", "t1": "Bosnie Herzégovine", "t2": "Qatar"}, "17": {"label": "Matchs B 5", "t1": "Bosnie Herzégovine", "t2": "Suisse"}, "18": {"label": "Matchs B 6", "t1": "Qatar", "t2": "Suisse"}, "20": {"label": "Matchs C 1", "t1": "Brésil", "t2": "Maroc"}, "21": {"label": "Matchs C 2", "t1": "Brésil", "t2": "Haiti"}, "22": {"label": "Matchs C 3", "t1": "Brésil", "t2": "Ecosse"}, "23": {"label": "Matchs C 4", "t1": "Maroc", "t2": "Haiti"}, "24": {"label": "Matchs C 5", "t1": "Maroc", "t2": "Ecosse"}, "25": {"label": "Matchs C 6", "t1": "Haiti", "t2": "Ecosse"}, "27": {"label": "Matchs D 1", "t1": "USA", "t2": "Paraguay"}, "28": {"label": "Matchs D 2", "t1": "USA", "t2": "Australie"}, "29": {"label": "Matchs D 3", "t1": "USA", "t2": "Turquie"}, "30": {"label": "Matchs D 4", "t1": "Paraguay", "t2": "Australie"}, "31": {"label": "Matchs D 5", "t1": "Paraguay", "t2": "Turquie"}, "32": {"label": "Matchs D 6", "t1": "Australie", "t2": "Turquie"}, "34": {"label": "Matchs E 1", "t1": "Allemagne", "t2": "Curaçao"}, "35": {"label": "Matchs E 2", "t1": "Allemagne", "t2": "Cote d'ivoire"}, "36": {"label": "Matchs E 3", "t1": "Allemagne", "t2": "Equateur"}, "37": {"label": "Matchs E 4", "t1": "Curaçao", "t2": "Cote d'ivoire"}, "38": {"label": "Matchs E 5", "t1": "Curaçao", "t2": "Equateur"}, "39": {"label": "Matchs E 6", "t1": "Cote d'ivoire", "t2": "Equateur"}, "41": {"label": "Matchs F 1", "t1": "Pays-Bas", "t2": "Japon"}, "42": {"label": "Matchs F 2", "t1": "Pays-Bas", "t2": "Suède"}, "43": {"label": "Matchs F 3", "t1": "Pays-Bas", "t2": "Tunisie"}, "44": {"label": "Matchs F 4", "t1": "Japon", "t2": "Suède"}, "45": {"label": "Matchs F 5", "t1": "Japon", "t2": "Tunisie"}, "46": {"label": "Matchs F 6", "t1": "Suède", "t2": "Tunisie"}, "48": {"label": "Matchs G 1", "t1": "Belgique", "t2": "Egypte"}, "49": {"label": "Matchs G 2", "t1": "Belgique", "t2": "Iran"}, "50": {"label": "Matchs G 3", "t1": "Belgique", "t2": "Nouvelle-Zélande"}, "51": {"label": "Matchs G 4", "t1": "Egypte", "t2": "Iran"}, "52": {"label": "Matchs G 5", "t1": "Egypte", "t2": "Nouvelle-Zélande"}, "53": {"label": "Matchs G 6", "t1": "Iran", "t2": "Nouvelle-Zélande"}, "55": {"label": "Matchs H 1", "t1": "Espagne", "t2": "Cap-Vert"}, "56": {"label": "Matchs H 2", "t1": "Espagne", "t2": "Arabie Saoudite"}, "57": {"label": "Matchs H 3", "t1": "Espagne", "t2": "Uruguay"}, "58": {"label": "Matchs H 4", "t1": "Cap-Vert", "t2": "Arabie Saoudite"}, "59": {"label": "Matchs H 5", "t1": "Cap-Vert", "t2": "Uruguay"}, "60": {"label": "Matchs H 6", "t1": "Arabie Saoudite", "t2": "Uruguay"}, "62": {"label": "Matchs I 1", "t1": "France", "t2": "Sénégal"}, "63": {"label": "Matchs I 2", "t1": "France", "t2": "Irak"}, "64": {"label": "Matchs I 3", "t1": "France", "t2": "Norvège"}, "65": {"label": "Matchs I 4", "t1": "Sénégal", "t2": "Irak"}, "66": {"label": "Matchs I 5", "t1": "Sénégal", "t2": "Norvège"}, "67": {"label": "Matchs I 6", "t1": "Irak", "t2": "Norvège"}, "69": {"label": "Matchs J 1", "t1": "Argentine", "t2": "Algérie"}, "70": {"label": "Matchs J 2", "t1": "Argentine", "t2": "Autriche"}, "71": {"label": "Matchs J 3", "t1": "Argentine", "t2": "Jordanie"}, "72": {"label": "Matchs J 4", "t1": "Algérie", "t2": "Autriche"}, "73": {"label": "Matchs J 5", "t1": "Algérie", "t2": "Jordanie"}, "74": {"label": "Matchs J 6", "t1": "Autriche", "t2": "Jordanie"}, "76": {"label": "Matchs K 1", "t1": "Portugal", "t2": "RD Congo"}, "77": {"label": "Matchs K 2", "t1": "Portugal", "t2": "Ouzbékistan"}, "78": {"label": "Matchs K 3", "t1": "Portugal", "t2": "Colombie"}, "79": {"label": "Matchs K 4", "t1": "RD Congo", "t2": "Ouzbékistan"}, "80": {"label": "Matchs K 5", "t1": "RD Congo", "t2": "Colombie"}, "81": {"label": "Matchs K 6", "t1": "Ouzbékistan", "t2": "Colombie"}, "83": {"label": "Matchs L 1", "t1": "Angleterre", "t2": "Croatie"}, "84": {"label": "Matchs L 2", "t1": "Angleterre", "t2": "Ghana"}, "85": {"label": "Matchs L 3", "t1": "Angleterre", "t2": "Panama"}, "86": {"label": "Matchs L 4", "t1": "Croatie", "t2": "Ghana"}, "87": {"label": "Matchs L 5", "t1": "Croatie", "t2": "Panama"}, "88": {"label": "Matchs L 6", "t1": "Ghana", "t2": "Panama"}}, "days": [{"name": "Jeu 11 juin", "date": "2026-06-11", "rows": [6, 11]}, {"name": "Ven 12 juin", "date": "2026-06-12", "rows": [13, 27]}, {"name": "Sam 13 juin", "date": "2026-06-13", "rows": [18, 20, 25, 32]}, {"name": "Dim 14 juin", "date": "2026-06-14", "rows": [34, 41, 39, 46]}, {"name": "Lun 15 juin", "date": "2026-06-15", "rows": [55, 48, 60, 53]}, {"name": "Mar 16 juin", "date": "2026-06-16", "rows": [62, 67, 69, 74]}, {"name": "Mer 17 juin", "date": "2026-06-17", "rows": [76, 83, 88, 81]}, {"name": "Jeu 18 juin", "date": "2026-06-18", "rows": [10, 17, 14, 7]}, {"name": "Ven 19 juin", "date": "2026-06-19", "rows": [24, 28, 21, 31]}, {"name": "Sam 20 juin", "date": "2026-06-20", "rows": [42, 35, 38, 45]}, {"name": "Dim 21 juin", "date": "2026-06-21", "rows": [56, 49, 59, 52]}, {"name": "Lun 22 juin", "date": "2026-06-22", "rows": [70, 63, 66, 73]}, {"name": "Mar 23 juin", "date": "2026-06-23", "rows": [77, 84, 87, 80]}, {"name": "Mer 24 juin", "date": "2026-06-24", "rows": [15, 16, 22, 23, 8, 9]}, {"name": "Jeu 25 juin", "date": "2026-06-25", "rows": [36, 37, 44, 43, 29, 30]}, {"name": "Ven 26 juin", "date": "2026-06-26", "rows": [64, 65, 58, 57, 51, 50]}, {"name": "Sam 27 juin", "date": "2026-06-27", "rows": [85, 86, 78, 79, 72, 71]}], "players": ["P2", "Gab", "Ivana", "Stutt", "Yannick", "MoMo", "Robin", "Luis", "David", "Maxime", "Greg", "Loic"], "preds": {"P2": {"6": [2, 1], "7": [2, 1], "8": [2, 2], "9": [1, 2], "10": [1, 2], "11": [1, 3], "13": [2, 2], "14": [2, 1], "15": [1, 3], "16": [3, 0], "17": [1, 2], "18": [0, 3], "20": [2, 1], "21": [4, 0], "22": [3, 1], "23": [3, 1], "24": [2, 2], "25": [1, 3], "27": [2, 2], "28": [2, 2], "29": [1, 2], "30": [2, 2], "31": [1, 3], "32": [1, 3], "34": [4, 0], "35": [3, 1], "36": [4, 2], "37": [1, 3], "38": [0, 2], "39": [2, 1], "41": [2, 1], "42": [3, 1], "43": [2, 1], "44": [2, 1], "45": [2, 1], "46": [2, 1], "48": [2, 1], "49": [3, 0], "50": [3, 1], "51": [3, 0], "52": [2, 1], "53": [1, 2], "55": [4, 0], "56": [4, 0], "57": [3, 1], "58": [1, 2], "59": [1, 3], "60": [1, 3], "62": [1, 1], "63": [3, 0], "64": [2, 2], "65": [2, 1], "66": [2, 2], "67": [0, 3], "69": [1, 1], "70": [3, 1], "71": [2, 0], "72": [2, 2], "73": [2, 0], "74": [1, 1], "76": [2, 0], "77": [5, 1], "78": [3, 1], "79": [1, 0], "80": [0, 2], "81": [0, 3], "83": [3, 2], "84": [2, 1], "85": [4, 0], "86": [2, 2], "87": [3, 0], "88": [2, 0]}, "Gab": {"6": [2, 1], "7": [2, 0], "8": [1, 1], "9": [0, 1], "10": [0, 1], "11": [0, 1], "13": [1, 1], "14": [2, 1], "15": [1, 3], "16": [3, 0], "17": [0, 2], "18": [0, 3], "20": [2, 2], "21": [6, 0], "22": [2, 1], "23": [4, 0], "24": [3, 1], "25": [0, 2], "27": [1, 1], "28": [1, 1], "29": [0, 1], "30": [0, 0], "31": [1, 1], "32": [0, 1], "34": [5, 0], "35": [2, 1], "36": [2, 2], "37": [1, 4], "38": [0, 3], "39": [1, 2], "41": [2, 0], "42": [1, 0], "43": [3, 2], "44": [0, 1], "45": [0, 1], "46": [1, 1], "48": [1, 1], "49": [1, 0], "50": [2, 0], "51": [1, 0], "52": [2, 1], "53": [2, 1], "55": [5, 0], "56": [4, 0], "57": [2, 1], "58": [1, 1], "59": [0, 2], "60": [0, 1], "62": [3, 1], "63": [3, 0], "64": [2, 2], "65": [1, 0], "66": [1, 2], "67": [1, 2], "69": [2, 0], "70": [1, 0], "71": [2, 1], "72": [1, 0], "73": [1, 2], "74": [1, 1], "76": [3, 2], "77": [1, 1], "78": [1, 1], "79": [1, 2], "80": [2, 3], "81": [1, 2], "83": [3, 2], "84": [2, 1], "85": [4, 0], "86": [1, 0], "87": [2, 0], "88": [3, 0]}, "Ivana": {"6": [2, 1], "7": [1, 1], "8": [2, 1], "9": [1, 2], "10": [0, 2], "11": [1, 1], "13": [2, 1], "14": [3, 1], "15": [1, 1], "16": [2, 1], "17": [0, 2], "18": [1, 2], "20": [2, 1], "21": [4, 0], "22": [3, 1], "23": [3, 0], "24": [1, 1], "25": [0, 2], "27": [2, 1], "28": [2, 0], "29": [1, 1], "30": [1, 0], "31": [1, 2], "32": [0, 2], "34": [5, 0], "35": [2, 1], "36": [3, 1], "37": [0, 3], "38": [0, 2], "39": [1, 1], "41": [2, 1], "42": [2, 0], "43": [3, 0], "44": [1, 1], "45": [2, 0], "46": [0, 0], "48": [1, 1], "49": [2, 0], "50": [4, 0], "51": [1, 1], "52": [2, 0], "53": [2, 0], "55": [4, 0], "56": [3, 0], "57": [1, 1], "58": [1, 1], "59": [0, 2], "60": [2, 1], "62": [2, 1], "63": [3, 0], "64": [2, 1], "65": [2, 0], "66": [2, 2], "67": [0, 3], "69": [3, 1], "70": [2, 1], "71": [4, 0], "72": [1, 1], "73": [2, 0], "74": [2, 0], "76": [3, 1], "77": [2, 0], "78": [2, 2], "79": [1, 1], "80": [1, 2], "81": [0, 2], "83": [2, 1], "84": [3, 1], "85": [4, 0], "86": [1, 1], "87": [2, 0], "88": [2, 1]}, "Stutt": {"6": [1, 1], "7": [3, 2], "8": [2, 2], "9": [0, 2], "10": [0, 1], "11": [1, 1], "13": [0, 2], "14": [1, 0], "15": [0, 3], "16": [1, 1], "17": [1, 2], "18": [0, 2], "20": [2, 1], "21": [5, 0], "22": [1, 1], "23": [4, 0], "24": [2, 0], "25": [0, 2], "27": [1, 3], "28": [1, 1], "29": [0, 3], "30": [2, 0], "31": [1, 1], "32": [2, 2], "34": [6, 0], "35": [1, 1], "36": [3, 1], "37": [0, 3], "38": [1, 1], "39": [3, 0], "41": [0, 0], "42": [2, 0], "43": [3, 1], "44": [0, 0], "45": [2, 1], "46": [2, 1], "48": [1, 2], "49": [3, 0], "50": [3, 0], "51": [2, 1], "52": [2, 0], "53": [1, 0], "55": [5, 1], "56": [2, 0], "57": [1, 0], "58": [0, 3], "59": [1, 4], "60": [0, 0], "62": [3, 1], "63": [8, 0], "64": [1, 1], "65": [3, 0], "66": [2, 1], "67": [0, 2], "69": [3, 1], "70": [2, 0], "71": [5, 0], "72": [1, 1], "73": [3, 1], "74": [2, 0], "76": [4, 1], "77": [5, 0], "78": [0, 1], "79": [1, 0], "80": [0, 3], "81": [0, 2], "83": [0, 0], "84": [1, 1], "85": [3, 1], "86": [1, 0], "87": [2, 0], "88": [2, 0]}, "Yannick": {"6": [2, 0], "7": [3, 1], "8": [2, 0], "9": [1, 1], "10": [2, 1], "11": [0, 1], "13": [1, 0], "14": [2, 1], "15": [0, 2], "16": [1, 1], "17": [1, 2], "18": [0, 3], "20": [4, 2], "21": [5, 0], "22": [3, 1], "23": [2, 1], "24": [2, 2], "25": [0, 1], "27": [1, 2], "28": [0, 0], "29": [1, 3], "30": [2, 0], "31": [1, 1], "32": [2, 3], "34": [6, 0], "35": [2, 1], "36": [4, 1], "37": [1, 3], "38": [1, 2], "39": [3, 0], "41": [3, 1], "42": [2, 1], "43": [3, 2], "44": [1, 1], "45": [2, 0], "46": [2, 2], "48": [3, 1], "49": [2, 0], "50": [3, 1], "51": [2, 1], "52": [1, 0], "53": [1, 1], "55": [6, 0], "56": [4, 1], "57": [2, 1], "58": [1, 2], "59": [0, 2], "60": [1, 2], "62": [2, 1], "63": [4, 1], "64": [1, 0], "65": [2, 0], "66": [1, 1], "67": [1, 2], "69": [3, 1], "70": [2, 1], "71": [4, 0], "72": [2, 2], "73": [2, 1], "74": [1, 0], "76": [2, 1], "77": [4, 0], "78": [1, 2], "79": [3, 0], "80": [1, 3], "81": [0, 2], "83": [3, 1], "84": [3, 2], "85": [2, 0], "86": [1, 2], "87": [2, 1], "88": [1, 0]}, "MoMo": {"6": [1, 0], "7": [2, 1], "8": [2, 1], "9": [0, 2], "10": [1, 2], "11": [1, 2], "13": [2, 1], "14": [2, 0], "15": [0, 1], "16": [2, 0], "17": [0, 3], "18": [0, 3], "20": [2, 1], "21": [5, 0], "22": [3, 1], "23": [2, 0], "24": [1, 0], "25": [1, 2], "27": [2, 1], "28": [2, 2], "29": [1, 2], "30": [0, 0], "31": [0, 1], "32": [2, 3], "34": [6, 0], "35": [3, 0], "36": [2, 1], "37": [0, 2], "38": [0, 3], "39": [1, 1], "41": [3, 1], "42": [2, 0], "43": [2, 0], "44": [1, 1], "45": [2, 1], "46": [1, 0], "48": [2, 0], "49": [3, 0], "50": [4, 0], "51": [2, 2], "52": [2, 1], "53": [3, 1], "55": [4, 0], "56": [3, 0], "57": [3, 1], "58": [1, 2], "59": [0, 3], "60": [0, 2], "62": [2, 1], "63": [3, 0], "64": [2, 1], "65": [2, 0], "66": [1, 1], "67": [1, 3], "69": [3, 1], "70": [2, 0], "71": [4, 0], "72": [0, 1], "73": [2, 0], "74": [2, 0], "76": [3, 1], "77": [4, 0], "78": [3, 2], "79": [0, 0], "80": [0, 2], "81": [0, 3], "83": [1, 2], "84": [2, 0], "85": [3, 1], "86": [2, 0], "87": [3, 0], "88": [2, 2]}, "Robin": {"6": [2, 0], "7": [1, 0], "8": [1, 1], "9": [0, 0], "10": [2, 2], "11": [1, 2], "13": [2, 2], "14": [1, 0], "15": [0, 1], "16": [0, 0], "17": [1, 2], "18": [0, 2], "20": [1, 1], "21": [5, 0], "22": [2, 0], "23": [3, 0], "24": [2, 1], "25": [0, 2], "27": [0, 2], "28": [1, 1], "29": [1, 3], "30": [2, 1], "31": [1, 1], "32": [0, 0], "34": [9, 0], "35": [3, 1], "36": [2, 1], "37": [1, 4], "38": [0, 5], "39": [1, 2], "41": [3, 1], "42": [1, 1], "43": [1, 0], "44": [1, 2], "45": [1, 0], "46": [2, 1], "48": [2, 1], "49": [2, 0], "50": [3, 1], "51": [1, 0], "52": [2, 0], "53": [1, 1], "55": [6, 0], "56": [3, 1], "57": [2, 0], "58": [1, 3], "59": [0, 4], "60": [2, 3], "62": [2, 1], "63": [3, 0], "64": [2, 1], "65": [2, 1], "66": [1, 1], "67": [0, 2], "69": [2, 1], "70": [2, 0], "71": [3, 0], "72": [0, 0], "73": [2, 0], "74": [2, 1], "76": [2, 0], "77": [3, 0], "78": [2, 3], "79": [3, 1], "80": [1, 3], "81": [0, 2], "83": [0, 0], "84": [2, 1], "85": [3, 0], "86": [1, 0], "87": [2, 0], "88": [3, 1]}, "Luis": {"6": [1, 0], "7": [3, 2], "8": [2, 2], "9": [1, 2], "10": [1, 1], "11": [0, 1], "13": [1, 1], "14": [2, 1], "15": [1, 1], "16": [1, 0], "17": [0, 1], "18": [0, 2], "20": [1, 1], "21": [5, 0], "22": [2, 1], "23": [2, 1], "24": [2, 1], "25": [0, 1], "27": [2, 0], "28": [0, 0], "29": [1, 1], "30": [0, 0], "31": [1, 3], "32": [0, 2], "34": [9, 0], "35": [2, 0], "36": [1, 1], "37": [1, 3], "38": [0, 4], "39": [1, 2], "41": [1, 0], "42": [1, 0], "43": [3, 0], "44": [2, 2], "45": [1, 1], "46": [1, 0], "48": [1, 0], "49": [2, 0], "50": [2, 0], "51": [2, 1], "52": [2, 1], "53": [2, 1], "55": [5, 0], "56": [3, 0], "57": [1, 0], "58": [1, 2], "59": [0, 3], "60": [0, 2], "62": [1, 0], "63": [4, 0], "64": [2, 1], "65": [3, 1], "66": [2, 1], "67": [0, 2], "69": [2, 0], "70": [1, 1], "71": [6, 0], "72": [1, 1], "73": [3, 1], "74": [2, 0], "76": [2, 1], "77": [1, 0], "78": [2, 2], "79": [1, 1], "80": [2, 4], "81": [1, 2], "83": [1, 1], "84": [3, 0], "85": [4, 1], "86": [1, 0], "87": [2, 1], "88": [2, 2]}, "David": {"6": [3, 1], "7": [2, 2], "8": [1, 3], "9": [1, 4], "10": [0, 3], "11": [2, 1], "13": [3, 1], "14": [4, 0], "15": [1, 3], "16": [2, 1], "17": [1, 4], "18": [1, 3], "20": [2, 2], "21": [4, 0], "22": [3, 1], "23": [5, 0], "24": [3, 2], "25": [1, 2], "27": [2, 1], "28": [1, 1], "29": [1, 2], "30": [2, 2], "31": [1, 3], "32": [2, 2], "34": [6, 0], "35": [2, 1], "36": [3, 1], "37": [0, 4], "38": [1, 3], "39": [3, 2], "41": [3, 2], "42": [4, 1], "43": [2, 2], "44": [2, 1], "45": [1, 1], "46": [1, 1], "48": [2, 1], "49": [4, 1], "50": [4, 0], "51": [2, 1], "52": [2, 1], "53": [1, 1], "55": [7, 0], "56": [2, 2], "57": [3, 1], "58": [1, 4], "59": [0, 3], "60": [2, 2], "62": [1, 1], "63": [5, 0], "64": [3, 2], "65": [3, 1], "66": [1, 2], "67": [1, 4], "69": [3, 0], "70": [3, 2], "71": [5, 0], "72": [1, 2], "73": [1, 1], "74": [3, 0], "76": [4, 1], "77": [5, 1], "78": [3, 1], "79": [2, 1], "80": [2, 2], "81": [1, 4], "83": [1, 1], "84": [2, 2], "85": [4, 0], "86": [1, 1], "87": [3, 0], "88": [2, 0]}, "Maxime": {"6": [1, 0], "7": [0, 0], "8": [1, 1], "9": [0, 1], "10": [0, 2], "11": [1, 2], "13": [1, 2], "14": [2, 0], "15": [1, 2], "16": [3, 0], "17": [1, 2], "18": [0, 3], "20": [2, 1], "21": [4, 0], "22": [2, 0], "23": [2, 0], "24": [0, 0], "25": [0, 2], "27": [1, 1], "28": [2, 1], "29": [0, 2], "30": [2, 0], "31": [0, 1], "32": [1, 3], "34": [4, 0], "35": [2, 1], "36": [2, 0], "37": [0, 2], "38": [1, 3], "39": [1, 0], "41": [2, 1], "42": [2, 1], "43": [2, 0], "44": [1, 2], "45": [0, 1], "46": [2, 1], "48": [2, 1], "49": [4, 0], "50": [2, 0], "51": [1, 0], "52": [2, 1], "53": [1, 0], "55": [4, 0], "56": [4, 0], "57": [2, 1], "58": [1, 0], "59": [0, 2], "60": [0, 3], "62": [2, 1], "63": [4, 0], "64": [2, 1], "65": [3, 0], "66": [2, 1], "67": [0, 3], "69": [2, 0], "70": [3, 0], "71": [5, 0], "72": [1, 0], "73": [2, 1], "74": [2, 0], "76": [2, 1], "77": [4, 0], "78": [1, 1], "79": [2, 0], "80": [1, 1], "81": [0, 4], "83": [2, 1], "84": [2, 1], "85": [3, 1], "86": [1, 0], "87": [2, 0], "88": [2, 1]}, "Greg": {"6": [2, 1], "7": [1, 1], "8": [2, 1], "9": [0, 2], "10": [1, 3], "11": [0, 1], "13": [0, 1], "14": [3, 1], "15": [0, 3], "16": [3, 0], "17": [1, 2], "18": [0, 4], "20": [2, 3], "21": [5, 0], "22": [2, 1], "23": [4, 0], "24": [2, 1], "25": [1, 2], "27": [2, 1], "28": [1, 2], "29": [2, 2], "30": [0, 1], "31": [1, 2], "32": [1, 0], "34": [6, 0], "35": [2, 1], "36": [2, 1], "37": [1, 2], "38": [0, 3], "39": [2, 3], "41": [3, 1], "42": [2, 1], "43": [3, 2], "44": [2, 1], "45": [1, 1], "46": [1, 0], "48": [3, 1], "49": [4, 0], "50": [5, 0], "51": [2, 1], "52": [3, 0], "53": [2, 1], "55": [5, 0], "56": [4, 1], "57": [3, 2], "58": [2, 1], "59": [1, 3], "60": [0, 4], "62": [1, 2], "63": [4, 0], "64": [2, 1], "65": [2, 0], "66": [0, 2], "67": [1, 1], "69": [3, 1], "70": [4, 1], "71": [5, 0], "72": [1, 2], "73": [2, 1], "74": [3, 1], "76": [3, 1], "77": [4, 0], "78": [2, 3], "79": [2, 0], "80": [1, 3], "81": [0, 4], "83": [3, 2], "84": [2, 1], "85": [3, 0], "86": [2, 2], "87": [3, 0], "88": [1, 1]}, "Loic": {"6": [2, 1], "7": [2, 0], "8": [2, 1], "9": [1, 0], "10": [2, 1], "11": [1, 1], "13": [2, 1], "14": [2, 0], "15": [0, 2], "16": [2, 0], "17": [1, 2], "18": [1, 3], "20": [2, 1], "21": [4, 0], "22": [3, 1], "23": [3, 0], "24": [2, 0], "25": [1, 2], "27": [2, 3], "28": [2, 2], "29": [1, 2], "30": [1, 0], "31": [0, 2], "32": [1, 3], "34": [7, 0], "35": [3, 1], "36": [3, 1], "37": [0, 2], "38": [0, 3], "39": [2, 1], "41": [3, 2], "42": [2, 2], "43": [2, 1], "44": [1, 1], "45": [2, 1], "46": [1, 1], "48": [2, 1], "49": [2, 0], "50": [3, 0], "51": [1, 1], "52": [1, 2], "53": [0, 1], "55": [3, 0], "56": [2, 0], "57": [2, 1], "58": [1, 1], "59": [0, 2], "60": [0, 2], "62": [3, 1], "63": [2, 0], "64": [2, 1], "65": [3, 0], "66": [1, 2], "67": [1, 3], "69": [2, 1], "70": [2, 0], "71": [3, 0], "72": [0, 1], "73": [2, 0], "74": [2, 0], "76": [3, 1], "77": [3, 0], "78": [2, 2], "79": [0, 0], "80": [0, 2], "81": [0, 3], "83": [2, 1], "84": [2, 0], "85": [3, 1], "86": [2, 0], "87": [3, 0], "88": [2, 2]}}, "seedResults": {"6": [2, 0], "11": [2, 1]}, "questions": [{"row": 117, "num": 1, "pts": 22, "text": "Quelle équipe marquera le 1er penalty de la CDM2026 ?"}, {"row": 118, "num": 2, "pts": 22, "text": "Quel joueur marquera le 1er but de la Nati de Suisse ?"}, {"row": 119, "num": 3, "pts": 22, "text": "Quelle équipe encaissera le 1er auto-goal de la CDM2026 ?"}, {"row": 120, "num": 4, "pts": 22, "text": "Quelle équipe marquera le 17ème but de la CDM2026 ?"}, {"row": 121, "num": 5, "pts": 22, "text": "Quelle sera la 1ère lettre du prénom du 1er buteur du match Egypte-Iran ?"}, {"row": 122, "num": 6, "pts": 22, "text": "Combien y aura-t-il de matchs au cours desquels les 2 équipes marqueront au moins un but ?  (temps réglementaire / 104 matchs)"}, {"row": 123, "num": 7, "pts": 22, "text": "Quelle équipe sera la moins bonne 3ème de la phase de poules ?  (points puis différence de buts puis nombre de buts encaissés)"}, {"row": 124, "num": 8, "pts": 22, "text": "Quelle sera la différence de buts marqués/buts encaissés de la Nati au cours de la CDM 2026 ?"}, {"row": 125, "num": 9, "pts": 22, "text": "Combien de cartons jaunes seront sortis au cours des matchs de la Suisse ?"}, {"row": 126, "num": 10, "pts": 22, "text": "Quelle équipe perdra la plus largement son 1/16ème de finale ?  (différence de buts puis plus de buts encaissés / temps réglementaire)"}, {"row": 127, "num": 11, "pts": 22, "text": "Combien de matchs de la CDM2026 iront en prolongations ?  (/32 matchs)"}, {"row": 128, "num": 12, "pts": 22, "text": "Quel sera le score de la finale ?"}, {"row": 129, "num": 13, "pts": 22, "text": "Quelle sera la moyenne de buts par match de la CDM2026 ?"}, {"row": 130, "num": 14, "pts": 22, "text": "A quelle place de notre grand concours de pronostics \"Pébroc\" se classera la meilleure fille ?"}, {"row": 131, "num": 15, "pts": 16, "text": "Dans un match de quel groupe verra-t-on surgir le 1er carton rouge ?"}, {"row": 132, "num": 16, "pts": 16, "text": "Quand est-ce que Oussmane Dembele marquera son 1er but à la CDM2026?  (au 1er match ; au 2ème match ; au 3ème match ; en 1/16 : en 1/8 ; en 1/4 ; en 1/2 ; en finale ; en août chez le qataris d'Paris...)"}, {"row": 133, "num": 17, "pts": 16, "text": "Entre quelles minutes tombera le 1er but de Autriche-Jordanie ?  (1-9;10-18;19-27;28-36;37-45;46-54;55-63;64-72;73-81;82-90;90+;pas de 1er but)"}, {"row": 134, "num": 18, "pts": 16, "text": "Quel sera le numéro du 1er joueur sortant du match  Brésil-Maroc ?"}, {"row": 135, "num": 19, "pts": 16, "text": "Quelle équipe du groupe K recevra le plus de carton jaune au cumul de ses 3 matchs de groupe ?"}, {"row": 136, "num": 20, "pts": 16, "text": "Quelle équipe aura le meilleur goal-average de la phase de groupes ?"}, {"row": 137, "num": 21, "pts": 16, "text": "Combien y aura-t-il de 0-0 au cours de la phase de groupes?  (/72 matchs)"}, {"row": 138, "num": 22, "pts": 16, "text": "Quelle équipe marquera le plus de buts au cours de la phase de poules ?"}, {"row": 139, "num": 23, "pts": 16, "text": "Entre quelles minutes tombera le but le plus rapide des 1/8 de finales ?  (1-5;6-10;11-15;16-20;21-25;26-30;31-35;36-40;41-45+;46-50;51-55;56-60;61-65;66-70;71-75;76-80;81-85;86-90;90+)"}, {"row": 140, "num": 24, "pts": 16, "text": "Quel sera le nombre total de buts marqués par l'équipe des Pays-Bas au cours de la CDM2026 ?  (sans séances penaltys) "}, {"row": 141, "num": 25, "pts": 16, "text": "Combien de buts seront marqués en 1/2 finales ?  (sans séances penalty)"}, {"row": 142, "num": 26, "pts": 16, "text": "Entre Haïti, Curaçao, la Nouvelle-Zélande, l'Ouzbékistan, le Cap-Vert, la Jordanie et le Panama, quelle équipe aura le meilleur goal-average de la CDM2026 ?"}, {"row": 143, "num": 27, "pts": 16, "text": "Quelle équipe encaissera le moins de buts au cours de la CDM2026 ?"}, {"row": 144, "num": 28, "pts": 16, "text": "Quelle équipe ne marquera aucun but lors de la CDM2026 ?"}, {"row": 145, "num": 29, "pts": 16, "text": "Qui sera 4ème de la CDM2026 ?"}, {"row": 146, "num": 30, "pts": 11, "text": "Pour quelle raison sera sifflé le 1er arrêt de jeu du match d'ouverture ?  (une faute, un hors-jeu, une sortie, un dégagement aux 6 mètres, un coup de coin, un but,une intervention de la VAR, la pause fraîcheur, la mi-temps, un nudiste, un parachutiste, autre chose...) "}, {"row": 147, "num": 31, "pts": 11, "text": "Le derby des \"du Sud\" sera remporté par l'équipe du pays le moins au Sud des deux \"du Sud\", vrai ou faux ?"}, {"row": 148, "num": 32, "pts": 11, "text": "Le résultat de l'addition des numéros des joueurs du 2ème changement du match France-Irak sera-t-il pair ou impair ?"}, {"row": 149, "num": 33, "pts": 11, "text": "Combien de cartons seront sortis par l'arbitre au cours du match entre l'Arabie Saoudite et le Cap-Vert ?  (jaunes+rouges (2jaunes=1rouge=3))"}, {"row": 150, "num": 34, "pts": 11, "text": "Le 2ème but du match RD Congo-Ouzbékistan sera-t-il inscrit au cours de la 1ère mi-temps, au cours de la 2ème mi-temps ou pas de 2ème but ? "}, {"row": 151, "num": 35, "pts": 11, "text": "Combien d'équipes gagneront leurs 3 matchs de groupes ?"}, {"row": 152, "num": 36, "pts": 11, "text": "Quel sera le nombre maximum de buts encaissés en un match par une équipe lors de la phase de groupes ?"}, {"row": 153, "num": 37, "pts": 11, "text": "La Suisse marquera-t-elle au cours de chacun de ses matchs ?"}, {"row": 154, "num": 38, "pts": 11, "text": "Un carton rouge sera-t-il sorti au cours d'un match de la Suisse ?"}, {"row": 155, "num": 39, "pts": 11, "text": "Quelle équipe africaine ira le plus loin dans la compétition ?"}, {"row": 156, "num": 40, "pts": 11, "text": "Combien y aura-t-il d'équipe européenne en demi-finales ? "}, {"row": 157, "num": 41, "pts": 11, "text": "Le dernier but de la finale (sans séances penalty) tombera-t-il à une minute pair ou impair ?"}, {"row": 158, "num": 42, "pts": 11, "text": "Quel sera le plus grand total de buts inscrits au cours d'un match de la CDM2026 ?  (temps réglementaire)"}, {"row": 159, "num": 43, "pts": 11, "text": "Quel âge aura le 1er buteur de la finale ?  (-23,24-26,27-29,30-32,+33) "}, {"row": 160, "num": 44, "pts": 11, "text": "De quel continent sera le meilleur buteur de la CDM2026"}], "answers": {"P2": {"117": "Mexique", "118": "Manzambi", "119": "Afrique du Sud", "120": "USA", "121": "M", "122": "93", "123": "Arabie Saoudite", "124": "2", "125": "7", "126": "Ecosse", "127": "8", "128": "3-2", "129": "2", "130": "5", "131": "B", "132": "au 2ème match", "133": "10-18", "134": "5", "135": "RD Congo", "136": "Espagne", "137": "9", "138": "Espagne", "139": "6-10", "140": "9", "141": "6", "142": "Nouvelle-Zélande", "143": "Espagne", "144": "Haiti", "145": "Argentine", "146": "une sortie", "147": "vrai", "148": "impair", "149": "5", "150": "en 2ème mi-temps", "151": "4", "152": "5", "153": "oui", "154": "oui", "155": "Maroc", "156": "2", "157": "impair", "158": "7", "159": "24-26 ans", "160": "Europe"}, "Gab": {"117": "Mexique", "118": "Embolo", "119": "USA", "120": "Ecosse", "121": "M", "122": "77", "123": "USA", "124": "+2", "125": "19", "126": "Tunisie", "127": "10", "128": "2-1", "129": "2.8", "130": "5", "131": "D", "132": "en 1/16 de finale", "133": "19-27", "134": "11", "135": "RD Congo", "136": "Espagne", "137": "6", "138": "France", "139": "1-5", "140": "13", "141": "5", "142": "Jordanie", "143": "Argentine", "144": "Curaçao", "145": "Brésil", "146": "une sortie", "147": "faux", "148": "pair", "149": "4", "150": "en 1ère mi-temps", "151": "5", "152": "6", "153": "non", "154": "oui", "155": "Egypte", "156": "2", "157": "pair", "158": "7", "159": "33 ans et +", "160": "Europe"}, "Ivana": {"117": "Mexique", "118": "Embolo", "119": "Afrique du Sud", "120": "Argentine", "121": "M", "122": "59", "123": "Nouvelle-Zélande", "124": "+2", "125": "10", "126": "Panama", "127": "8", "128": "2-1", "129": "2.9", "130": "2", "131": "C", "132": "au 2ème match", "133": "28-36", "134": "7", "135": "Colombie", "136": "France", "137": "6", "138": "France", "139": "1-5", "140": "11", "141": "5", "142": "Ouzbékistan", "143": "France", "144": "Nouvelle-Zélande", "145": "Espagne", "146": "une faute", "147": "vrai", "148": "pair", "149": "5", "150": "en 2ème mi-temps", "151": "5", "152": "7", "153": "non", "154": "oui", "155": "Maroc", "156": "3", "157": "impair", "158": "9", "159": "27-29 ans", "160": "Europe"}, "Stutt": {"117": "Corée du Sud", "118": "Ndoye", "119": "USA", "120": "Ecosse", "121": "O", "122": "67", "123": "Iran", "124": "7", "125": "13", "126": "Egypte", "127": "10", "128": "2-0", "129": "2", "130": "7", "131": "D", "132": "au 3ème match", "133": "1-9", "134": "5", "135": "RD Congo", "136": "Espagne", "137": "11", "138": "Suède", "139": "1-5", "140": "6", "141": "5", "142": "Panama", "143": "Espagne", "144": "Haiti", "145": "Portugal", "146": "une sortie", "147": "faux", "148": "pair", "149": "6", "150": "en 1ère mi-temps", "151": "4", "152": "8", "153": "non", "154": "non", "155": "Maroc", "156": "2", "157": "impair", "158": "8", "159": "23 ans et -", "160": "Europe"}, "Yannick": {"117": "Tchéquie", "118": "Amdouni", "119": "Ecosse", "120": "Allemagne", "121": "M", "122": "69", "123": "Tunisie", "124": "+3", "125": "9", "126": "Equateur", "127": "9", "128": "2-0", "129": "2.7", "130": "1", "131": "B", "132": "au 2ème match", "133": "28-36", "134": "13", "135": "RD Congo", "136": "Espagne", "137": "4", "138": "Espagne", "139": "11-15", "140": "12", "141": "4", "142": "Nouvelle-Zélande", "143": "Allemagne", "144": "Ouzbékistan", "145": "Allemagne", "146": "une sortie", "147": "vrai", "148": "impair", "149": "5", "150": "en 1ère mi-temps", "151": "8", "152": "6", "153": "non", "154": "oui", "155": "Sénégal", "156": "3", "157": "pair", "158": "7", "159": "27-29 ans", "160": "Europe"}, "MoMo": {"117": "Corée du Sud", "118": "Embolo", "119": "Afrique du Sud", "120": "Brésil", "121": "M", "122": "58", "123": "Arabie Saoudite", "124": "+4", "125": "6", "126": "Cap-Vert", "127": "6", "128": "2-1", "129": "2.7", "130": "3", "131": "C", "132": "Au 2ème match", "133": "28-36", "134": "10", "135": "Portugal", "136": "Allemagne", "137": "3", "138": "Allemagne", "139": "11-15", "140": "7", "141": "5", "142": "Nouvelle-Zélande", "143": "Argentine", "144": "Curaçao", "145": "Allemagne", "146": "une sortie", "147": "Vrai", "148": "Pair", "149": "5", "150": "Pas de 2ème but", "151": "9", "152": "6", "153": "Oui", "154": "Oui", "155": "Maroc", "156": "3", "157": "Impaire", "158": "6", "159": "27-29 ans", "160": "Europe"}, "Robin": {"117": "Canada", "118": "Ndoye", "119": "Curaçao", "120": "Écosse ", "121": "M", "122": "73", "123": "Iran", "124": "6", "125": "8", "126": "RD Congo", "127": "12", "128": "2-1", "129": "2.8", "130": "7", "131": "D", "132": "au1er match", "133": "28-36", "134": "19", "135": "RD Congo", "136": "Allemagne", "137": "14", "138": "Allemagne", "139": "6-10", "140": "8", "141": "4", "142": "Panama", "143": "Espagne", "144": "Haiti", "145": "Angleterre", "146": "une sortie", "147": "FAUX", "148": "pair", "149": "5", "150": "en 1ère mi-temps", "151": "7", "152": "9", "153": "non", "154": "non", "155": "Egypte", "156": "3", "157": "pair", "158": "9", "159": "24-26 ans", "160": "Europe"}, "Luis": {"117": "Mexique", "118": "Embolo", "119": "Curaçao", "120": "Allemagne", "121": "A", "122": "37", "123": "Arabie Saoudite", "124": "-1", "125": "6", "126": "Arabie Saoudite", "127": "8", "128": "2-1", "129": "2.7", "130": "7ème", "131": "D", "132": "au 3ème match", "133": "19-27", "134": "11", "135": "Portugal", "136": "Allemagne", "137": "4", "138": "Allemagne", "139": "6-10", "140": "6", "141": "4", "142": "Ouzbékistan", "143": "Pays-Bas", "144": "Aucune", "145": "Argentine", "146": "une faute", "147": "vrai", "148": "pair", "149": "1", "150": "en 2ème mi-temps", "151": "4", "152": "9", "153": "non", "154": "non", "155": "Maroc", "156": "3", "157": "impair", "158": "9", "159": "24-26 ans", "160": "Europe"}, "David": {"117": "Canada", "118": "Manzambi", "119": "USA", "120": "Allemagne", "121": "M", "122": "75", "123": "Sénégal", "124": "+5", "125": "16", "126": "Iran", "127": "10", "128": "2-1", "129": "2.3", "130": "4", "131": "E", "132": "au1er match", "133": "10-18", "134": "7", "135": "RD Congo", "136": "Portugal", "137": "7", "138": "Portugal", "139": "1-5", "140": "15", "141": "7", "142": "Ouzbékistan", "143": "Suisse", "144": "Curaçao", "145": "Allemagne", "146": "une sortie", "147": "vrai", "148": "pair", "149": "4", "150": "en 1ère mi-temps", "151": "6", "152": "7", "153": "oui", "154": "non", "155": "Egypte", "156": "3", "157": "impair", "158": "7", "159": "24-26 ans", "160": "Europe"}, "Maxime": {"117": "USA", "118": "Manzambi", "119": "Australie", "120": "Ecosse", "121": "M", "122": "45", "123": "Autriche", "124": "+7", "125": "19", "126": "Algérie", "127": "4", "128": "3-1", "129": "2.5", "130": "7", "131": "C", "132": "au 3ème match", "133": "28-36", "134": "7", "135": "Colombie", "136": "Argentine", "137": "3", "138": "Argentine", "139": "16-20", "140": "9", "141": "6", "142": "Nouvelle-Zélande", "143": "France", "144": "Ouzbékistan", "145": "Espagne", "146": "une sortie", "147": "vrai", "148": "impair", "149": "5", "150": "en 2ème mi-temps", "151": "10", "152": "5", "153": "oui", "154": "oui", "155": "Sénégal", "156": "2", "157": "pair", "158": "5", "159": "27-29 ans", "160": "Europe"}, "Greg": {"117": "Bosnie", "118": "Ndoye", "119": "Curacao", "120": "Maroc", "121": "M", "122": "47", "123": "RD Congo", "124": "+6", "125": "4", "126": "Cote d'ivoire", "127": "7", "128": "3-1", "129": "2.6", "130": "23", "131": "J", "132": "au 2ème match", "133": "19-27", "134": "8", "135": "Colombie", "136": "Espagne", "137": "0", "138": "Espagne", "139": "6-10", "140": "6", "141": "5", "142": "Panama", "143": "Espagne", "144": "Nouvelle-Zélande", "145": "Allemagne", "146": "un 6 mètres", "147": "vrai", "148": "pair", "149": "1", "150": "en 1ère mi-temps", "151": "6", "152": "6", "153": "non", "154": "non", "155": "Maroc", "156": "3", "157": "impair", "158": "6", "159": "27-29 ans", "160": "Europe"}, "Loic": {"117": "Corée du Sud", "118": "Breel Embolo", "119": "Bosnie", "120": "Allemagne", "121": "E", "122": "65", "123": "Algerie", "124": "5", "125": "7", "126": "Tchéquie", "127": "4", "128": "3-2", "129": "2.3", "130": "4", "131": "J", "132": "Au 1ème match", "133": "19-27", "134": "9", "135": "Portugal", "136": "Bresil", "137": "5", "138": "Espagne", "139": "6-10", "140": "6", "141": "7", "142": "Nouvelle-Zélande", "143": "Espagne", "144": "Curaçao", "145": "Allemagne", "146": "une sortie", "147": "False", "148": "Impaire", "149": "2", "150": " 2ème mi temps", "151": "8", "152": "7", "153": "Oui", "154": "non", "155": "Maroc", "156": "2", "157": "paire", "158": "7", "159": "24-26 ans", "160": "Europe"}}, "seedBonus": {"146": ["P2", "Gab", "Stutt", "Yannick", "MoMo", "Robin", "David", "Maxime", "Loic"]}};
 const SKEY = 'pebroc2026_v2';
 
+/* ---------- phases predictions data ---------- */
+(function(){const d={"groups":{"A":{"P2":["Mexique","Tchéquie","Corée du Sud","Afrique du Sud"],"Gab":["Mexique","Tchéquie","Corée du Sud","Afrique du Sud"],"Ivana":["Mexique","Tchéquie","Corée du Sud","Afrique du Sud"],"Stutt":["Mexique","Corée du Sud","Afrique du Sud","Tchéquie"],"Yannick":["Mexique","Tchéquie","Afrique du Sud","Corée du Sud"],"MoMo":["Mexique","Tchéquie","Corée du Sud","Afrique du Sud"],"Robin":["Mexique","Tchéquie","Afrique du Sud","Corée du Sud"],"Luis":["Mexique","Tchéquie","Corée du Sud","Afrique du Sud"],"David":["Corée du Sud","Tchéquie","Mexique","Afrique du Sud"],"Maxime":["Tchéquie","Mexique","Corée du Sud","Afrique du Sud"],"Greg":["Mexique","Tchéquie","Corée du Sud","Afrique du Sud"],"Loic":["Mexique","Tchéquie","Corée du Sud","Afrique du Sud"]},"B":{"P2":["Suisse","Bosnie Herzégovine","Canada","Qatar"],"Gab":["Suisse","Bosnie Herzégovine","Canada","Qatar"],"Ivana":["Suisse","Canada","Bosnie Herzégovine","Qatar"],"Stutt":["Suisse","Bosnie Herzégovine","Qatar","Canada"],"Yannick":["Suisse","Canada","Qatar","Bosnie Herzégovine"],"MoMo":["Suisse","Canada","Bosnie Herzégovine","Qatar"],"Robin":["Suisse","Canada","Bosnie Herzégovine","Qatar"],"Luis":["Suisse","Canada","Bosnie Herzégovine","Qatar"],"David":["Suisse","Canada","Bosnie Herzégovine","Qatar"],"Maxime":["Suisse","Bosnie Herzégovine","Canada","Qatar"],"Greg":["Suisse","Bosnie Herzégovine","Canada","Qatar"],"Loic":["Suisse","Canada","Bosnie Herzégovine","Qatar"]},"C":{"P2":["Brésil","Maroc","Ecosse","Haiti"],"Gab":["Brésil","Maroc","Ecosse","Haiti"],"Ivana":["Brésil","Maroc","Ecosse","Haiti"],"Stutt":["Brésil","Maroc","Ecosse","Haiti"],"Yannick":["Brésil","Maroc","Ecosse","Haiti"],"MoMo":["Brésil","Maroc","Ecosse","Haiti"],"Robin":["Brésil","Maroc","Ecosse","Haiti"],"Luis":["Brésil","Maroc","Ecosse","Haiti"],"David":["Brésil","Maroc","Ecosse","Haiti"],"Maxime":["Brésil","Maroc","Ecosse","Haiti"],"Greg":["Maroc","Brésil","Ecosse","Haiti"],"Loic":["Brésil","Maroc","Ecosse","Haiti"]},"D":{"P2":["Turquie","USA","Paraguay","Australie"],"Gab":["Turquie","Paraguay","USA","Australie"],"Ivana":["USA","Turquie","Paraguay","Australie"],"Stutt":["Paraguay","Turquie","USA","Australie"],"Yannick":["Turquie","Paraguay","USA","Australie"],"MoMo":["Turquie","USA","Australie","Paraguay"],"Robin":["Paraguay","Turquie","Australie","USA"],"Luis":["Turquie","USA","Australie","Paraguay"],"David":["Turquie","USA","Australie","Paraguay"],"Maxime":["Turquie","Paraguay","USA","Australie"],"Greg":["Australie","USA","Turquie","Paraguay"],"Loic":["Turquie","USA","Australie","Paraguay"]},"E":{"P2":["Allemagne","Cote d'ivoire","Equateur","Curaçao"],"Gab":["Allemagne","Equateur","Cote d'ivoire","Curaçao"],"Ivana":["Allemagne","Cote d'ivoire","Equateur","Curaçao"],"Stutt":["Allemagne","Cote d'ivoire","Equateur","Curaçao"],"Yannick":["Allemagne","Cote d'ivoire","Equateur","Curaçao"],"MoMo":["Allemagne","Equateur","Cote d'ivoire","Curaçao"],"Robin":["Allemagne","Equateur","Cote d'ivoire","Curaçao"],"Luis":["Allemagne","Equateur","Cote d'ivoire","Curaçao"],"David":["Allemagne","Cote d'ivoire","Equateur","Curaçao"],"Maxime":["Allemagne","Cote d'ivoire","Equateur","Curaçao"],"Greg":["Allemagne","Equateur","Cote d'ivoire","Curaçao"],"Loic":["Allemagne","Equateur","Cote d'ivoire","Curaçao"]},"F":{"P2":["Pays-Bas","Japon","Suède","Tunisie"],"Gab":["Pays-Bas","Tunisie","Suède","Japon"],"Ivana":["Pays-Bas","Japon","Suède","Tunisie"],"Stutt":["Japon","Pays-Bas","Suède","Tunisie"],"Yannick":["Pays-Bas","Japon","Tunisie","Suède"],"MoMo":["Pays-Bas","Japon","Suède","Tunisie"],"Robin":["Pays-Bas","Suède","Japon","Tunisie"],"Luis":["Pays-Bas","Suède","Japon","Tunisie"],"David":["Pays-Bas","Japon","Tunisie","Suède"],"Maxime":["Pays-Bas","Suède","Tunisie","Japon"],"Greg":["Pays-Bas","Japon","Suède","Tunisie"],"Loic":["Pays-Bas","Japon","Suède","Tunisie"]},"G":{"P2":["Belgique","Egypte","Nouvelle-Zélande","Iran"],"Gab":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"Ivana":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"Stutt":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"Yannick":["Belgique","Egypte","Nouvelle-Zélande","Iran"],"MoMo":["Belgique","Iran","Egypte","Nouvelle-Zélande"],"Robin":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"Luis":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"David":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"Maxime":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"Greg":["Belgique","Egypte","Iran","Nouvelle-Zélande"],"Loic":["Belgique","Iran","Egypte","Nouvelle-Zélande"]},"H":{"P2":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"Gab":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"Ivana":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"Stutt":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"Yannick":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"MoMo":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"Robin":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"Luis":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"David":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"],"Maxime":["Espagne","Uruguay","Cap-Vert","Arabie Saoudite"],"Greg":["Espagne","Uruguay","Cap-Vert","Arabie Saoudite"],"Loic":["Espagne","Uruguay","Arabie Saoudite","Cap-Vert"]},"I":{"P2":["Norvège","France","Sénégal","Irak"],"Gab":["France","Norvège","Sénégal","Irak"],"Ivana":["France","Sénégal","Norvège","Irak"],"Stutt":["France","Sénégal","Norvège","Irak"],"Yannick":["France","Sénégal","Norvège","Irak"],"MoMo":["France","Norvège","Sénégal","Irak"],"Robin":["France","Norvège","Sénégal","Irak"],"Luis":["France","Sénégal","Norvège","Irak"],"David":["France","Norvège","Sénégal","Irak"],"Maxime":["France","Sénégal","Norvège","Irak"],"Greg":["France","Sénégal","Norvège","Irak"],"Loic":["France","Norvège","Sénégal","Irak"]},"J":{"P2":["Argentine","Algérie","Autriche","Jordanie"],"Gab":["Argentine","Jordanie","Algérie","Autriche"],"Ivana":["Argentine","Algérie","Autriche","Jordanie"],"Stutt":["Argentine","Algérie","Autriche","Jordanie"],"Yannick":["Argentine","Algérie","Autriche","Jordanie"],"MoMo":["Argentine","Autriche","Algérie","Jordanie"],"Robin":["Argentine","Algérie","Autriche","Jordanie"],"Luis":["Argentine","Autriche","Algérie","Jordanie"],"David":["Argentine","Autriche","Algérie","Jordanie"],"Maxime":["Argentine","Algérie","Autriche","Jordanie"],"Greg":["Argentine","Autriche","Algérie","Jordanie"],"Loic":["Argentine","Autriche","Algérie","Jordanie"]},"K":{"P2":["Portugal","Colombie","RD Congo","Ouzbékistan"],"Gab":["Colombie","Portugal","Ouzbékistan","RD Congo"],"Ivana":["Portugal","Colombie","RD Congo","Ouzbékistan"],"Stutt":["Portugal","Colombie","RD Congo","Ouzbékistan"],"Yannick":["Portugal","Colombie","RD Congo","Ouzbékistan"],"MoMo":["Portugal","Colombie","RD Congo","Ouzbékistan"],"Robin":["Colombie","Portugal","RD Congo","Ouzbékistan"],"Luis":["Colombie","Portugal","Ouzbékistan","RD Congo"],"David":["Portugal","Colombie","RD Congo","Ouzbékistan"],"Maxime":["Portugal","Colombie","RD Congo","Ouzbékistan"],"Greg":["Colombie","Portugal","RD Congo","Ouzbékistan"],"Loic":["Portugal","Colombie","RD Congo","Ouzbékistan"]},"L":{"P2":["Angleterre","Croatie","Ghana","Panama"],"Gab":["Angleterre","Croatie","Ghana","Panama"],"Ivana":["Angleterre","Croatie","Ghana","Panama"],"Stutt":["Angleterre","Croatie","Ghana","Panama"],"Yannick":["Angleterre","Ghana","Croatie","Panama"],"MoMo":["Croatie","Angleterre","Ghana","Panama"],"Robin":["Angleterre","Croatie","Ghana","Panama"],"Luis":["Angleterre","Croatie","Panama","Ghana"],"David":["Angleterre","Ghana","Croatie","Panama"],"Maxime":["Angleterre","Croatie","Ghana","Panama"],"Greg":["Angleterre","Croatie","Ghana","Panama"],"Loic":["Croatie","Angleterre","Ghana","Panama"]}},"ko":{"ko16":{"P2":["Mexique","Suisse","Brésil","Turquie","Allemagne","Pays-Bas","Belgique","Espagne","Norvège","Argentine","Portugal","Angleterre","Tchéquie","Bosnie Herzégovine","Maroc","USA","Cote d'ivoire","Japon","Egypte","Uruguay","France","Algérie","Colombie","Croatie","Ghana","Sénégal","Suède","Ecosse","Canada","Autriche","Nouvelle-Zélande","Paraguay"],"Gab":["Allemagne","Ecosse","France","Suède","Tchéquie","Bosnie Herzégovine","Pays-Bas","Maroc","Portugal","Croatie","Espagne","Jordanie","Turquie","Sénégal","Belgique","Algérie","Brésil","Tunisie","Equateur","Norvège","Mexique","Cote d'ivoire","Angleterre","Ouzbékistan","Argentine","Uruguay","Paraguay","Egypte","Suisse","Iran","Colombie","Ghana"],"Ivana":["Mexique","Suisse","Brésil","Allemagne","Argentine","Portugal","Angleterre","Colombie","France","Espagne","Belgique","Pays-Bas","USA","Tchéquie","Canada","Maroc","Turquie","Cote d'ivoire","Japon","Egypte","Uruguay","Sénégal","Algérie","Croatie","Ghana","Suède","Norvège","Paraguay","Corée du Sud","Bosnie Herzégovine","Iran"],"Stutt":["Mexique","Corée du Sud","Suisse","Bosnie Herzégovine","Brésil","Maroc","Paraguay","Turquie","Allemagne","Cote d'ivoire","Japon","Pays-Bas","Belgique","Egypte","Espagne","Uruguay","France","Sénégal","Argentine","Algérie","Portugal","Colombie","Angleterre","Croatie","Afrique du Sud","Ecosse","USA","Equateur","Suède","Norvège","Autriche","Ghana"],"Yannick":["Mexique","Tchéquie","Suisse","Canada","Brésil","Maroc","Paraguay","Turquie","Allemagne","Cote d'ivoire","Pays-Bas","Japon","Belgique","Egypte","Espagne","Uruguay","France","Sénégal","Argentine","Algérie","Portugal","Colombie","Angleterre","Ghana","Autriche","Norvège","Ecosse","Tunisie","RD Congo","Croatie","Arabie Saoudite","Equateur"],"MoMo":["Tchéquie","Canada","Allemagne","Suède","Pays-Bas","Maroc","Brésil","Japon","France","Ecosse","Equateur","Norvège","Mexique","Cote d'ivoire","Croatie","Algérie","Turquie","Bosnie Herzégovine","Belgique","Corée du Sud","Colombie","Angleterre","Espagne","Autriche","Suisse","Egypte","Portugal","Sénégal","Argentine","Uruguay","USA","Iran"],"Robin":["Allemagne","Ecosse","France","Japon","Tchéquie","Canada","Pays-Bas","Maroc","Portugal","Croatie","Espagne","Algérie","Paraguay","Sénégal","Belgique","Arabie Saoudite","Brésil","Suède","Equateur","Norvège","Mexique","Cote d'ivoire","Angleterre","RD Congo","Suisse","Autriche","Colombie","Ghana","Argentine","Uruguay","Turquie","Egypte"],"Luis":["Mexique","Tchéquie","Corée du Sud","Suisse","Canada","Bosnie Herzégovine","Brésil","Maroc","Ecosse","Turquie","USA","Allemagne","Equateur","Cote d'ivoire","Pays-Bas","Suède","Belgique","Egypte","Espagne","Uruguay","Arabie Saoudite","France","Sénégal","Norvège","Argentine","Autriche","Algérie","Colombie","Portugal","Angleterre","Croatie"],"David":["Corée du Sud","Tchéquie","Suisse","Canada","Brésil","Maroc","Turquie","USA","Allemagne","Cote d'ivoire","Pays-Bas","Belgique","Egypte","Espagne","Uruguay","France","Norvège","Argentine","Autriche","Portugal","Colombie","Angleterre","Ghana","Mexique","Croatie","Bosnie Herzégovine","Australie","Arabie Saoudite","Algérie","Iran","Equateur"],"Maxime":["Tchéquie","Mexique","Suisse","Bosnie Herzégovine","Brésil","Maroc","Turquie","Paraguay","Allemagne","Cote d'ivoire","Pays-Bas","Suède","Belgique","Egypte","Espagne","Uruguay","France","Sénégal","Argentine","Algérie","Portugal","Colombie","Angleterre","Croatie","RD Congo","Corée du Sud","Ecosse","USA","Norvège","Canada","Equateur","Ghana"],"Greg":["Tchéquie","Bosnie Herzégovine","Allemagne","Norvège","Pays-Bas","Brésil","Maroc","Japon","France","Corée du Sud","Equateur","Sénégal","Mexique","Turquie","Angleterre","Cote d'ivoire","Australie","Ecosse","Belgique","Suède","Portugal","Croatie","Espagne","Autriche","Suisse","Algérie","Colombie","RD Congo","Argentine","Uruguay","USA","Egypte"],"Loic":["Tchéquie","Canada","Allemagne","Suède","Pays-Bas","Maroc","Brésil","Japon","France","Ecosse","Equateur","Norvège","Mexique","Cote d'ivoire","Croatie","Algérie","Turquie","Bosnie Herzégovine","Belgique","Corée du Sud","Colombie","Angleterre","Espagne","Autriche","Suisse","Egypte","Portugal","Sénégal","Argentine","Uruguay","USA","Iran"]},"ko8":{"P2":["Suisse","Brésil","Allemagne","Espagne","Norvège","Pays-Bas","Belgique","Argentine","Portugal","Angleterre","Maroc","France","Croatie","Sénégal","Colombie","USA"],"Gab":["Allemagne","France","Bosnie Herzégovine","Pays-Bas","Portugal","Espagne","Turquie","Belgique","Brésil","Equateur","Mexique","Angleterre","Argentine","Egypte","Suisse","Colombie"],"Ivana":["Belgique","Suisse","Brésil","Espagne","France","Portugal","Angleterre","Croatie","Colombie","Pays-Bas","Allemagne","Pays-Bas","Mexique","Maroc","Turquie","Algérie"],"Stutt":["Allemagne","France","Corée du Sud","Maroc","Croatie","Espagne","Autriche","Belgique","Brésil","Sénégal","Mexique","Angleterre","Argentine","Turquie","Suisse","Portugal"],"Yannick":["Mexique","Suisse","Brésil","Maroc","Allemagne","Cote d'ivoire","Pays-Bas","Belgique","Espagne","Uruguay","France","Sénégal","Argentine","Portugal","Angleterre","Colombie"],"MoMo":["Tchéquie","Allemagne","Pays-Bas","Brésil","France","Norvège","Mexique","Croatie","Turquie","Belgique","Angleterre","Espagne","Suisse","Portugal","Argentine","USA"],"Robin":["Allemagne","France","Tchéquie","Pays-Bas","Portugal","Espagne","Paraguay","Belgique","Brésil","Equateur","Cote d'ivoire","Angleterre","Suisse","Colombie","Argentine","Egypte"],"Luis":["Tchéquie","Brésil","Maroc","Equateur","Espagne","Portugal","USA","Argentine","Allemagne","France","Norvège","Angleterre","Belgique","Turquie","Suisse","Colombie"],"David":["Suisse","Brésil","Allemagne","Pays-Bas","France","Angleterre","Portugal","Argentine","Espagne","Belgique","Corée du Sud","Canada","USA","Sénégal","Croatie","Norvège"],"Maxime":["Mexique","Brésil","Allemagne","Pays-Bas","Sénégal","France","Norvège","Angleterre","Belgique","Turquie","Espagne","Colombie","Suisse","Egypte","Portugal","Argentine"],"Greg":["Tchéquie","Allemagne","Brésil","Maroc","France","Equateur","Sénégal","Angleterre","Cote d'ivoire","Belgique","Portugal","Espagne","Suisse","Colombie","Argentine","USA"],"Loic":["Tchéquie","Allemagne","Pays-Bas","Brésil","France","Norvège","Mexique","Croatie","Turquie","Belgique","Angleterre","Espagne","Suisse","Portugal","Argentine","USA"]},"ko4":{"P2":["Brésil","Allemagne","Espagne","Norvège","Argentine","Portugal","Suisse","France"],"Gab":["France","Pays-Bas","Espagne","Belgique","Brésil","Angleterre","Argentine","Suisse"],"Ivana":["Brésil","France","Portugal","Argentine","Espagne","Pays-Bas","Allemagne","Mexique"],"Stutt":["France","Maroc","Espagne","Autriche","Brésil","Angleterre","Argentine","Portugal"],"Yannick":["Suisse","Brésil","Allemagne","Pays-Bas","Argentine","Espagne","France","Angleterre"],"MoMo":["Allemagne","Brésil","France","Mexique","Belgique","Espagne","Portugal","Argentine"],"Robin":["France","Pays-Bas","Espagne","Belgique","Brésil","Angleterre","Suisse","Argentine"],"Luis":["France","Maroc","Portugal","Turquie","Equateur","Angleterre","Argentine","Suisse"],"David":["Suisse","Brésil","Allemagne","Espagne","France","Argentine","Portugal","Norvège"],"Maxime":["Brésil","Allemagne","France","Angleterre","Belgique","Espagne","Suisse","Argentine"],"Greg":["Allemagne","Maroc","France","Angleterre","Belgique","Espagne","Suisse","Argentine"],"Loic":["Allemagne","Brésil","France","Mexique","Belgique","Espagne","Portugal","Argentine"]},"ko2":{"P2":["Brésil","Allemagne","Espagne","Argentine"],"Gab":["France","Espagne","Brésil","Argentine"],"Ivana":["Portugal","Brésil","Argentine","France"],"Stutt":["France","Espagne","Brésil","Argentine"],"Yannick":["Brésil","Allemagne","Angleterre","Espagne"],"MoMo":["Allemagne","France","Espagne","Argentine"],"Robin":["France","Espagne","Angleterre","Argentine"],"Luis":["France","Portugal","Angleterre","Argentine"],"David":["Suisse","Allemagne","Espagne","Argentine"],"Maxime":["Brésil","Espagne","France","Argentine"],"Greg":["Allemagne","France","Espagne","Argentine"],"Loic":["Allemagne","France","Espagne","Argentine"]},"final":{"P2":["Espagne","Allemagne"],"Gab":["Espagne","Argentine"],"Ivana":["Portugal","Argentine"],"Stutt":["Espagne","Argentine"],"Yannick":["Brésil","Espagne"],"MoMo":["France","Argentine"],"Robin":["Espagne","Argentine"],"Luis":["Portugal","Angleterre"],"David":["Espagne","Argentine"],"Maxime":["France","Argentine"],"Greg":["France","Espagne"],"Loic":["France","Argentine"]}},"podium":{"P2":["Espagne","Allemagne","Brésil"],"Gab":["Argentine","Espagne","France"],"Ivana":["Portugal","Argentine","Brésil"],"Stutt":["Espagne","Argentine","France"],"Yannick":["Espagne","Brésil","Angleterre"],"MoMo":["Argentine","France","Espagne"],"Robin":["Argentine","Espagne","France"],"Luis":["Portugal","Angleterre","France"],"David":["Argentine","Espagne","Suisse"],"Maxime":["France","Argentine","Brésil"],"Greg":["Espagne","France","Argentine"],"Loic":["Argentine","France","Espagne"]}};
+DB.groups=d.groups; DB.ko=d.ko; DB.podium_preds=d.podium;})();
+
 /* ---------- state: seed < remote < localStorage < URL hash ---------- */
 let results = Object.assign({}, DB.seedResults);
 let correctAnswers = {};  // {qrow: "answer"}
 let bonus = {};  // calculated from correctAnswers
 let storageOK = true;
+let groupsReal = {};   // {A:[t1,t2,t3,t4], ...}  keyed by group letter
+let koReal = {};       // {ko16:[...], ko8:[...], ko4:[...], ko2:[...], final:[w,l]}
+let podiumReal = null; // [1st, 2nd, 3rd]
 
 function recalculateBonus(){
   bonus = {};
@@ -214,8 +271,11 @@ async function init(){
     if(resp.ok){
       const remote = await resp.json();
       if(remote.r) results = Object.assign(results, remote.r);
-      if(remote.ca) correctAnswers = Object.assign({}, remote.ca);  // load correct answers
-      if(remote.b) bonus = Object.assign(bonus, remote.b);  // fallback for old format
+      if(remote.ca) correctAnswers = Object.assign({}, remote.ca);
+      if(remote.b) bonus = Object.assign(bonus, remote.b);
+      if(remote.gs) groupsReal = Object.assign({}, remote.gs);
+      if(remote.ko) koReal = Object.assign({}, remote.ko);
+      if(remote.pd) podiumReal = remote.pd;
     }
   } catch(e){}
 
@@ -225,7 +285,7 @@ async function init(){
   /* 2. localStorage (overrides remote — corrections en cours) */
   // localStorage and URL hash import disabled: always use remote `resultats.json`
 
-  renderDaybar(); renderDay(); renderEntry(); renderBonus(); renderLB();
+  renderDaybar(); renderDay(); renderEntry(); renderBonus(); renderLB(); renderPhases();
 }
 
 /* ---------- scoring ---------- */
@@ -252,6 +312,34 @@ function totals(){
   for(const qrow in bonus){
     const pts = QPTS[qrow]||0;
     (bonus[qrow]||[]).forEach(p=>{ if(t[p]){t[p].pts+=pts; t[p].bonus+=pts;} });
+  }
+  // Group standings: 6 pts per correct position
+  for(const g in groupsReal){
+    const actual = groupsReal[g];
+    if(!actual||actual.length<4) continue;
+    DB.players.forEach(p=>{
+      const pred=(DB.groups[g]||{})[p]||[];
+      for(let i=0;i<4;i++){ if(pred[i]&&actual[i]&&pred[i]===actual[i]) t[p].pts+=6; }
+    });
+  }
+  // KO phases
+  const KO_PTS={ko16:5,ko8:9,ko4:15,ko2:22,final:33};
+  for(const phase in KO_PTS){
+    const actual=koReal[phase];
+    if(!actual||actual.length===0) continue;
+    const actualSet=new Set(actual);
+    DB.players.forEach(p=>{
+      const pred=(DB.ko[phase]||{})[p]||[];
+      pred.forEach(team=>{ if(actualSet.has(team)) t[p].pts+=KO_PTS[phase]; });
+    });
+  }
+  // Podium: 69/29/19 pts per correct position
+  if(podiumReal&&podiumReal.length>=3){
+    const PP=[69,29,19];
+    DB.players.forEach(p=>{
+      const pred=DB.podium_preds[p]||[];
+      for(let i=0;i<3;i++){ if(pred[i]&&podiumReal[i]&&pred[i]===podiumReal[i]) t[p].pts+=PP[i]; }
+    });
   }
   return t;
 }
@@ -453,6 +541,194 @@ function renderLB(){
   });
 }
 
+/* ---------- phases view ---------- */
+const GROUP_LETTERS=['A','B','C','D','E','F','G','H','I','J','K','L'];
+const KO_PHASES=[
+  {key:'ko16',label:'1/16',pts:5},{key:'ko8',label:'1/8',pts:9},
+  {key:'ko4',label:'1/4',pts:15},{key:'ko2',label:'1/2',pts:22},
+  {key:'final',label:'Finale',pts:33}
+];
+const POS_LABELS=['1er','2ème','3ème','4ème'];
+let selGroup='A', selKoPhase='ko16';
+
+function renderPhases(){
+  renderGrpTabs(); renderGrpContent();
+  renderKoTabs(); renderKoContent();
+  renderPodiumContent();
+}
+
+function renderGrpTabs(){
+  const el=document.getElementById('grp-tabs'); el.innerHTML='';
+  GROUP_LETTERS.forEach(g=>{
+    const b=document.createElement('button');
+    b.className='ptab'+(g===selGroup?' sel':'');
+    b.textContent='Groupe '+g;
+    b.onclick=()=>{selGroup=g;renderGrpTabs();renderGrpContent();};
+    el.appendChild(b);
+  });
+  const s=el.querySelector('.sel');if(s)s.scrollIntoView({inline:'center',block:'nearest'});
+}
+
+function renderGrpContent(){
+  const el=document.getElementById('grp-content'); el.innerHTML='';
+  const g=selGroup, actual=groupsReal[g]||[null,null,null,null];
+  const hasResult=actual.some(x=>x);
+
+  if(adminMode){
+    const block=document.createElement('div'); block.className='admin-block';
+    block.innerHTML='<label>Classement réel groupe '+g+' (6 pts par position correcte)</label>';
+    const inputs=document.createElement('div'); inputs.className='admin-grp-inputs';
+    POS_LABELS.forEach((pos,i)=>{
+      const d=document.createElement('div');
+      d.innerHTML='<div class="admin-grp-lbl">'+pos+'</div>';
+      const inp=document.createElement('input'); inp.className='admin-grp-inp';
+      inp.type='text'; inp.placeholder='Équipe…'; inp.value=actual[i]||'';
+      inp.onchange=()=>{
+        if(!groupsReal[g]) groupsReal[g]=[null,null,null,null];
+        groupsReal[g][i]=inp.value.trim()||null;
+        renderGrpContent(); renderLB();
+      };
+      d.appendChild(inp); inputs.appendChild(d);
+    });
+    block.appendChild(inputs); el.appendChild(block);
+  }
+
+  const wrap=document.createElement('div'); wrap.className='grp-wrap';
+  const grid=document.createElement('div'); grid.className='grp-grid';
+  // header row
+  ['Joueur',...POS_LABELS].forEach((h,i)=>{
+    const d=document.createElement('div'); d.className='grp-hd';
+    d.textContent=h; grid.appendChild(d);
+  });
+  // player rows
+  DB.players.forEach(p=>{
+    const pred=(DB.groups[g]||{})[p]||[];
+    const nameCell=document.createElement('div'); nameCell.className='grp-cell'; nameCell.textContent=p;
+    grid.appendChild(nameCell);
+    for(let i=0;i<4;i++){
+      const cell=document.createElement('div');
+      const hit=hasResult&&actual[i]&&pred[i]===actual[i];
+      const miss=hasResult&&actual[i]&&pred[i]!==actual[i];
+      cell.className='grp-cell'+(hit?' hit':miss?' miss':'');
+      cell.textContent=pred[i]||'?'; grid.appendChild(cell);
+    }
+  });
+  wrap.appendChild(grid); el.appendChild(wrap);
+  if(hasResult){
+    const info=document.createElement('div');
+    info.style.cssText='font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:8px';
+    info.textContent='Résultat : '+actual.filter(Boolean).join(' · ');
+    el.insertBefore(info,wrap);
+  }
+}
+
+function renderKoTabs(){
+  const el=document.getElementById('ko-tabs'); el.innerHTML='';
+  KO_PHASES.forEach(ph=>{
+    const b=document.createElement('button');
+    b.className='ptab'+(ph.key===selKoPhase?' sel':'');
+    b.textContent=ph.label+' ('+ph.pts+' pts)';
+    b.onclick=()=>{selKoPhase=ph.key;renderKoTabs();renderKoContent();};
+    el.appendChild(b);
+  });
+  // Podium chip
+  const pb=document.createElement('button');
+  pb.className='ptab'+(selKoPhase==='podium'?' sel':'');
+  pb.textContent='Podium (69/29/19)';
+  pb.onclick=()=>{selKoPhase='podium';renderKoTabs();renderKoContent();};
+  el.appendChild(pb);
+  const s=el.querySelector('.sel');if(s)s.scrollIntoView({inline:'center',block:'nearest'});
+}
+
+function renderKoContent(){
+  const el=document.getElementById('ko-content'); el.innerHTML='';
+  if(selKoPhase==='podium'){ renderPodiumContent(); return; }
+  const ph=KO_PHASES.find(x=>x.key===selKoPhase);
+  const actual=koReal[selKoPhase]||[];
+  const actualSet=new Set(actual);
+  const hasResult=actual.length>0;
+
+  if(adminMode){
+    const block=document.createElement('div'); block.className='admin-block';
+    block.innerHTML='<label>Qualifiés réels en '+ph.label+' (séparés par des virgules) — '+ph.pts+' pts chaque</label>';
+    const ta=document.createElement('textarea'); ta.className='admin-ko-area';
+    ta.value=actual.join(', ');
+    ta.onchange=()=>{
+      const teams=ta.value.split(',').map(s=>s.trim()).filter(Boolean);
+      koReal[selKoPhase]=teams;
+      renderKoContent(); renderLB();
+    };
+    block.appendChild(ta); el.appendChild(block);
+  } else if(hasResult){
+    const info=document.createElement('div');
+    info.style.cssText='font-size:.68rem;color:var(--muted);margin-bottom:8px;line-height:1.6';
+    info.textContent=actual.join(' · ');
+    el.appendChild(info);
+  }
+
+  const wrap=document.createElement('div'); wrap.className='grp-wrap';
+  wrap.style.padding='8px 10px';
+  DB.players.forEach(p=>{
+    const pred=(DB.ko[selKoPhase]||{})[p]||[];
+    const row=document.createElement('div'); row.className='ko-row';
+    const name=document.createElement('div'); name.className='ko-pname'; name.textContent=p;
+    const chips=document.createElement('div'); chips.className='ko-chips';
+    pred.forEach(team=>{
+      const c=document.createElement('span'); c.className='ko-chip';
+      if(hasResult) c.classList.add(actualSet.has(team)?'hit':'miss');
+      c.textContent=team; chips.appendChild(c);
+    });
+    row.appendChild(name); row.appendChild(chips); wrap.appendChild(row);
+  });
+  el.appendChild(wrap);
+}
+
+function renderPodiumContent(){
+  const el=document.getElementById('ko-content');
+  if(selKoPhase!=='podium'){el.innerHTML='';return;}
+  el.innerHTML='';
+  const actual=podiumReal||[null,null,null];
+  const PP_LABELS=['🥇 Champion (69 pts)','🥈 Finaliste (29 pts)','🥉 3ème place (19 pts)'];
+  const PP=[69,29,19];
+
+  if(adminMode){
+    const block=document.createElement('div'); block.className='admin-block';
+    block.innerHTML='<label>Podium réel</label>';
+    const inputs=document.createElement('div'); inputs.className='admin-grp-inputs';
+    PP_LABELS.forEach((lbl,i)=>{
+      const d=document.createElement('div');
+      d.innerHTML='<div class="admin-grp-lbl">'+lbl+'</div>';
+      const inp=document.createElement('input'); inp.className='admin-grp-inp';
+      inp.type='text'; inp.placeholder='Équipe…'; inp.value=actual[i]||'';
+      inp.onchange=()=>{
+        if(!podiumReal) podiumReal=[null,null,null];
+        podiumReal[i]=inp.value.trim()||null;
+        renderPodiumContent(); renderLB();
+      };
+      d.appendChild(inp); inputs.appendChild(d);
+    });
+    block.appendChild(inputs); el.appendChild(block);
+  }
+
+  const grid=document.createElement('div'); grid.className='pod-grid';
+  DB.players.forEach(p=>{
+    const pred=DB.podium_preds[p]||[];
+    const card=document.createElement('div'); card.className='pod-card';
+    const name=document.createElement('div'); name.className='pod-name'; name.textContent=p;
+    card.appendChild(name);
+    ['🥇','🥈','🥉'].forEach((medal,i)=>{
+      const row=document.createElement('div'); row.className='pod-row';
+      const hit=actual[i]&&pred[i]===actual[i];
+      if(hit) row.classList.add(i===0?'hit0':'hit');
+      row.textContent=medal+' '+(pred[i]||'?');
+      if(hit) row.title='+'+PP[i]+' pts';
+      card.appendChild(row);
+    });
+    grid.appendChild(card);
+  });
+  el.appendChild(grid);
+}
+
 /* ---------- utils ---------- */
 function toast(msg){
   const t=document.getElementById('toast');
@@ -502,7 +778,11 @@ document.getElementById('btn-publish').onclick=async()=>{
   try {
     const clean={};
     for(const k in results){ if(Array.isArray(results[k])) clean[k]=results[k]; }
-    const payload = JSON.stringify({r:clean,ca:correctAnswers}, null, 2);
+    const cleanGs={};
+    for(const g in groupsReal){ if(groupsReal[g]&&groupsReal[g].some(Boolean)) cleanGs[g]=groupsReal[g]; }
+    const cleanKo={};
+    for(const ph in koReal){ if(koReal[ph]&&koReal[ph].length>0) cleanKo[ph]=koReal[ph]; }
+    const payload = JSON.stringify({r:clean,ca:correctAnswers,gs:cleanGs,ko:cleanKo,pd:podiumReal||null}, null, 2);
     const token = getGithubToken();
     if(token){
       const content = btoa(unescape(encodeURIComponent(payload)));
@@ -560,6 +840,7 @@ function setAdminMode(on){
   }
   renderEntry();
   renderBonus();
+  renderPhases();
 }
 
 document.getElementById('btn-admin-lock').onclick = ()=>{
@@ -601,7 +882,7 @@ function _showRemoteBanner(remote){
   div.innerHTML = 'Nouveaux résultats disponibles — <button id="btn-reload-remote" class="btn">Recharger</button> <button id="btn-apply-remote" class="btn ghost">Appliquer localement</button> <button id="btn-ignore-remote" class="btn ghost">Ignorer</button>';
   document.body.appendChild(div);
   document.getElementById('btn-reload-remote').onclick=()=>{ try{ localStorage.removeItem(SKEY); }catch(e){} location.reload(); };
-  document.getElementById('btn-apply-remote').onclick=()=>{ try{ results = Object.assign({}, remote.r); correctAnswers = Object.assign({}, remote.ca || {}); recalculateBonus(); persist(); renderDay(); renderEntry(); renderBonus(); renderLB(); toast('Résultats appliqués'); }catch(e){} document.getElementById('remoteUpdate')?.remove(); };
+  document.getElementById('btn-apply-remote').onclick=()=>{ try{ results = Object.assign({}, remote.r); correctAnswers = Object.assign({}, remote.ca || {}); if(remote.gs) groupsReal=Object.assign({},remote.gs); if(remote.ko) koReal=Object.assign({},remote.ko); if(remote.pd) podiumReal=remote.pd; recalculateBonus(); persist(); renderDay(); renderEntry(); renderBonus(); renderLB(); renderPhases(); toast('Résultats appliqués'); }catch(e){} document.getElementById('remoteUpdate')?.remove(); };
   document.getElementById('btn-ignore-remote').onclick=()=>{ document.getElementById('remoteUpdate')?.remove(); };
 }
 
