@@ -186,8 +186,8 @@ function b64uEnc(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'
 function b64uDec(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)));}
 
 function persist(){
-  if(!storageOK) return;
-  try{ localStorage.setItem(SKEY, JSON.stringify({r:results, b:bonus})); }catch(e){}
+  // Local persistence disabled to force centralised updates via publish
+  return;
 }
 
 async function init(){
@@ -202,22 +202,7 @@ async function init(){
   } catch(e){}
 
   /* 2. localStorage (overrides remote — corrections en cours) */
-  try {
-    const saved = JSON.parse(localStorage.getItem(SKEY) || '{}');
-    if(saved.r) results = Object.assign(results, saved.r);
-    if(saved.b) bonus = Object.assign(bonus, saved.b);
-  } catch(e){ storageOK = false; }
-
-  /* 3. URL hash (overrides localStorage) */
-  const m = location.hash.match(/d=([A-Za-z0-9_\-]+)/);
-  if(m){ try {
-    const inc = JSON.parse(b64uDec(m[1]));
-    if(inc.r) results = Object.assign(results, inc.r);
-    if(inc.b) bonus = Object.assign(bonus, inc.b);
-    persist();
-    history.replaceState(null,'',location.pathname);
-    toast('Résultats importés ✓');
-  } catch(e){} }
+  // localStorage and URL hash import disabled: always use remote `resultats.json`
 
   renderDaybar(); renderDay(); renderEntry(); renderBonus(); renderLB();
 }
