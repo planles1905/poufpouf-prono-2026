@@ -409,6 +409,7 @@ function autoBracket(){
   const thirdMap=(key&&THIRDS_TABLE[key])
     ? Object.fromEntries(THIRD_SLOT_ORDER.map((s,i)=>[s, THIRDS_TABLE[key][i]])) : null;
   const slot=(ty,g)=>{
+    if(!key) return null; // 1/16 affiché seulement quand TOUS les groupes sont terminés
     if(ty==='W') return groupPos(g,0);
     if(ty==='R') return groupPos(g,1);
     return thirdMap ? groupPos(thirdMap[g],2) : null; // T: 3rd of mapped group
@@ -494,21 +495,46 @@ function totals(){
 }
 
 /* ---------- day view ---------- */
+// Round labels/points lookup (no longer drives chips — calendar is by day)
 const KO_CAL=[
-  {key:'ko16', label:'1/16', name:'1/16 · 28 juin–3 juil', to:'2026-07-03', next:'ko8',  pts:9},
-  {key:'ko8',  label:'1/8',  name:'1/8 · 4–7 juil',        to:'2026-07-07', next:'ko4',  pts:15},
-  {key:'ko4',  label:'1/4',  name:'1/4 · 9–11 juil',       to:'2026-07-11', next:'ko2',  pts:22},
-  {key:'ko2',  label:'1/2',  name:'1/2 · 14–15 juil',      to:'2026-07-15', next:'final',pts:33},
-  {key:'finals',label:'Finale', name:'Finale · 18–19 juil', to:'2026-07-19'}
+  {key:'ko16', label:'1/16', next:'ko8',  pts:9},
+  {key:'ko8',  label:'1/8',  next:'ko4',  pts:15},
+  {key:'ko4',  label:'1/4',  next:'ko2',  pts:22},
+  {key:'ko2',  label:'1/2',  next:'final',pts:33}
 ];
+
+// Kickoff date+time (UTC+2 / heure de Paris). MATCH_DT keyed by app match row; KO_DT by official match number.
+const MATCH_DT={"6":"2026-06-11T21:00","7":"2026-06-19T03:00","8":"2026-06-25T03:00","9":"2026-06-25T03:00","10":"2026-06-18T18:00","11":"2026-06-12T04:00","13":"2026-06-12T21:00","14":"2026-06-19T00:00","15":"2026-06-24T21:00","16":"2026-06-24T21:00","17":"2026-06-18T21:00","18":"2026-06-13T21:00","20":"2026-06-14T00:00","21":"2026-06-20T02:30","22":"2026-06-25T00:00","23":"2026-06-25T00:00","24":"2026-06-20T00:00","25":"2026-06-14T03:00","27":"2026-06-13T03:00","28":"2026-06-19T21:00","29":"2026-06-26T04:00","30":"2026-06-26T04:00","31":"2026-06-20T05:00","32":"2026-06-14T06:00","34":"2026-06-14T19:00","35":"2026-06-20T22:00","36":"2026-06-25T22:00","37":"2026-06-25T22:00","38":"2026-06-21T02:00","39":"2026-06-15T01:00","41":"2026-06-14T22:00","42":"2026-06-20T19:00","43":"2026-06-26T01:00","44":"2026-06-26T01:00","45":"2026-06-21T06:00","46":"2026-06-15T04:00","48":"2026-06-15T21:00","49":"2026-06-21T21:00","50":"2026-06-27T05:00","51":"2026-06-27T05:00","52":"2026-06-22T03:00","53":"2026-06-16T03:00","55":"2026-06-15T18:00","56":"2026-06-21T18:00","57":"2026-06-27T02:00","58":"2026-06-27T02:00","59":"2026-06-22T00:00","60":"2026-06-16T00:00","62":"2026-06-16T21:00","63":"2026-06-22T23:00","64":"2026-06-26T21:00","65":"2026-06-26T21:00","66":"2026-06-23T02:00","67":"2026-06-17T00:00","69":"2026-06-17T03:00","70":"2026-06-22T19:00","71":"2026-06-28T04:00","72":"2026-06-28T04:00","73":"2026-06-23T05:00","74":"2026-06-17T06:00","76":"2026-06-17T19:00","77":"2026-06-23T19:00","78":"2026-06-28T01:30","79":"2026-06-28T01:30","80":"2026-06-24T04:00","81":"2026-06-18T04:00","83":"2026-06-17T22:00","84":"2026-06-23T22:00","85":"2026-06-27T23:00","86":"2026-06-27T23:00","87":"2026-06-24T01:00","88":"2026-06-18T01:00"};
+const KO_DT={"73":"2026-06-28T21:00","76":"2026-06-29T19:00","74":"2026-06-29T22:30","75":"2026-06-30T03:00","78":"2026-06-30T19:00","77":"2026-06-30T23:00","79":"2026-07-01T03:00","80":"2026-07-01T18:00","82":"2026-07-01T22:00","81":"2026-07-02T02:00","84":"2026-07-02T21:00","83":"2026-07-03T01:00","85":"2026-07-03T05:00","88":"2026-07-03T20:00","86":"2026-07-04T00:00","87":"2026-07-04T03:30","90":"2026-07-04T19:00","89":"2026-07-04T23:00","91":"2026-07-05T22:00","92":"2026-07-06T02:00","93":"2026-07-06T21:00","94":"2026-07-07T02:00","95":"2026-07-07T18:00","96":"2026-07-07T22:00","97":"2026-07-09T22:00","98":"2026-07-10T21:00","99":"2026-07-11T23:00","100":"2026-07-12T03:00","101":"2026-07-14T21:00","102":"2026-07-15T21:00","103":"2026-07-18T23:00","104":"2026-07-19T21:00"};
+
+const MOIS=['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+const JOURS=['dim','lun','mar','mer','jeu','ven','sam'];
+function _d(iso){ return new Date(iso.slice(0,10)+'T00:00'); }
+function fmtDayChip(date){ const d=_d(date); return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()]; }
+function fmtKick(iso){ if(!iso) return ''; const d=_d(iso); return JOURS[d.getDay()]+' '+d.getDate()+' · '+iso.slice(11,16); }
+
+// KO matches grouped by real Paris date, sorted by kickoff
+const KO_DAYS=(()=>{
+  const by={};
+  for(const id in KO_DT){ const day=KO_DT[id].slice(0,10); (by[day]=by[day]||[]).push(+id); }
+  return Object.keys(by).sort().map(day=>({date:day, ids:by[day].sort((a,b)=>KO_DT[a].localeCompare(KO_DT[b])||a-b)}));
+})();
+function roundOfMatch(id){ id=+id; return id<=88?'ko16':id<=96?'ko8':id<=100?'ko4':id<=102?'ko2':id===103?'third':'finalm'; }
+function roundLabel(mkey){ return mkey==='finalm'?'Finale':mkey==='third'?'Match 3e place':((KO_CAL.find(x=>x.key===mkey)||{}).label+' de finale'); }
+function slotLabel(id){
+  id=+id;
+  if(R32_DEF[id]){ const d=R32_DEF[id], s=(ty,g)=>ty==='W'?'1er Gr.'+g:ty==='R'?'2e Gr.'+g:'3e (à définir)'; return s(d[0],d[1])+' – '+s(d[2],d[3]); }
+  if(id===103) return 'Perdant M101 – Perdant M102';
+  const f=BR_FEED[id]; return f?('Vainqueur M'+f[0]+' – Vainqueur M'+f[1]):'';
+}
 
 let selDay = (()=>{
   const today = new Date().toISOString().slice(0,10);
   const i = DB.days.findIndex(d=>d.date===today);
   if(i>=0) return i;
   if(today > DB.days[DB.days.length-1].date){
-    for(const ph of KO_CAL){ if(today<=ph.to) return ph.key; }
-    return 'finals';
+    const k = KO_DAYS.find(d=>d.date>=today) || KO_DAYS[KO_DAYS.length-1];
+    return 'k:'+k.date;
   }
   return 0;
 })();
@@ -523,19 +549,17 @@ function renderDaybar(){
     c.onclick=()=>{selDay=i;renderDaybar();renderDay();};
     bar.appendChild(c);
   });
-  KO_CAL.forEach(ph=>{
+  KO_DAYS.forEach(d=>{
+    const key='k:'+d.date;
     const c=document.createElement('button');
-    c.className='chip'+(ph.key===selDay?' sel':'');
-    c.innerHTML='<span class="n">'+ph.name+'</span>';
-    c.onclick=()=>{selDay=ph.key;renderDaybar();renderDay();};
+    c.className='chip'+(key===selDay?' sel':'');
+    c.innerHTML='<span class="n">'+fmtDayChip(d.date)+'</span>';
+    c.onclick=()=>{selDay=key;renderDaybar();renderDay();};
     bar.appendChild(c);
   });
   const sel = bar.querySelector('.sel');
   if(sel) sel.scrollIntoView({inline:'center',block:'nearest'});
 }
-
-/* mkey for a match id: phase key for 73-102, special for final/3rd-place */
-function mkeyForMatch(id, phaseKey){ return id===104?'finalm' : id===103?'third' : phaseKey; }
 /* what each player predicted to advance from this KO match */
 function koPickFor(p, mkey, t1, t2){
   if(mkey==='third'){ const c=(DB.podium_preds[p]||[])[2]; return [t1,t2].filter(t=>t===c); }
@@ -550,7 +574,7 @@ function koPtsFor(mkey){
   return (KO_CAL.find(x=>x.key===mkey)||{}).pts||0;
 }
 
-function koMatchCard(mkey, id, B, slabel){
+function koMatchCard(mkey, id, B){
   const m=B[id]||{};
   const t1=m.t1, t2=m.t2, known=!!(t1&&t2);
   const sc=koScores[id]||[null,null];
@@ -560,9 +584,10 @@ function koMatchCard(mkey, id, B, slabel){
   const winner=decided?(s1>s2?t1:t2):null;
   const pts=koPtsFor(mkey);
   const card=document.createElement('div'); card.className='card';
-  const lbl=(slabel||((KO_CAL.find(x=>x.key===mkey)||{}).label+' de finale'))+' · M'+id;
+  const kick=fmtKick(KO_DT[id]);
+  const lbl=roundLabel(mkey)+' · M'+id+(kick?' · '+kick:'');
   const teamsHtml = known ? (t1+' – '+t2)
-    : '<span style="color:var(--muted)">'+(t1||'?')+' – '+(t2||'?')+'</span>';
+    : '<span style="color:var(--muted)">'+slotLabel(id)+'</span>';
   let head='<div class="card-head"><div>'
     +'<div class="mlabel">'+lbl+'</div>'
     +'<div class="teams">'+teamsHtml+'</div></div>'
@@ -617,39 +642,34 @@ function koMatchCard(mkey, id, B, slabel){
   return card;
 }
 
-function renderKoDay(key){
+function renderKoDate(date){
   const wrap=document.getElementById('daymatches');
   wrap.innerHTML='';
+  const day=KO_DAYS.find(d=>d.date===date);
+  if(!day) return;
   const B=autoBracket();
-  const ids=PHASE_MATCHES[key]||[];
-  const slabelOf=(id)=> id===104?'Finale' : id===103?'Match pour la 3e place' : null;
-  let anyKnown=false;
-  ids.forEach(id=>{ const m=B[id]||{}; if(m.t1&&m.t2) anyKnown=true; });
-  if(!anyKnown){
-    const ph=KO_CAL.find(x=>x.key===key);
+  // Note when 1/16 fixtures still depend on poules being finished
+  const hasR32=day.ids.some(id=>id<=88);
+  if(hasR32 && !B[73].t1){
     const corrected=Object.keys(results).filter(k=>Array.isArray(results[k])).length;
     const d=document.createElement('div'); d.className='sharebox';
-    const why = key==='ko16'
-      ? 'Les affiches se génèrent automatiquement dès que les groupes concernés sont terminés (les matchs avec un 3e attendent la fin des 72 matchs de poules). '+corrected+'/72 corrigés.'
-      : 'Les affiches ('+ph.name+') se génèrent automatiquement dès que les matchs du tour précédent ont un score.';
-    d.innerHTML='<p>'+why+'</p>';
+    d.innerHTML='<p>Les équipes des 1/16 s’afficheront dès que les 72 matchs de poules seront corrigés ('+corrected+'/72).</p>';
     wrap.appendChild(d);
   }
-  ids.forEach(id=>{
-    wrap.appendChild(koMatchCard(mkeyForMatch(id,key), id, B, slabelOf(id)));
-  });
+  day.ids.forEach(id=>{ wrap.appendChild(koMatchCard(roundOfMatch(id), id, B)); });
 }
 
 function renderDay(){
   const wrap=document.getElementById('daymatches');
-  if(typeof selDay==='string'){ renderKoDay(selDay); return; }
+  if(typeof selDay==='string'){ renderKoDate(selDay.slice(2)); return; }
   wrap.innerHTML='';
   DB.days[selDay].rows.forEach(row=>{
     const m=DB.matches[row], res=results[row];
     const hasRes = Array.isArray(res);
     const card=document.createElement('div'); card.className='card';
+    const kick=fmtKick(MATCH_DT[row]);
     let head='<div class="card-head"><div>'
-      +'<div class="mlabel">'+m.label+'</div>'
+      +'<div class="mlabel">'+m.label+(kick?' · '+kick:'')+'</div>'
       +'<div class="teams">'+m.t1+' – '+m.t2+'</div></div>'
       +(hasRes?'<div class="result-pill">'+res[0]+' – '+res[1]+'</div>'
               :'<div class="result-pill empty">à jouer</div>')
@@ -688,7 +708,7 @@ function renderEntry(){
     d.rows.forEach(row=>{
       const m=DB.matches[row], res=Array.isArray(results[row])?results[row]:['',''];
       const e=document.createElement('div'); e.className='entry';
-      e.innerHTML='<div class="ename">'+m.t1+' – '+m.t2+'<small>'+m.label+'</small></div>'
+      e.innerHTML='<div class="ename">'+m.t1+' – '+m.t2+'<small>'+m.label+(fmtKick(MATCH_DT[row])?' · '+fmtKick(MATCH_DT[row]):'')+'</small></div>'
         +'<input type="number" inputmode="numeric" min="0" max="20" value="'+res[0]+'" data-row="'+row+'" data-side="0"'+(adminMode?'':' disabled')+'>'
         +'<span class="dash">–</span>'
         +'<input type="number" inputmode="numeric" min="0" max="20" value="'+res[1]+'" data-row="'+row+'" data-side="1"'+(adminMode?'':' disabled')+'>';
