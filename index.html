@@ -242,7 +242,7 @@ let storageOK = true;
 let groupsReal = {};   // {A:[t1,t2,t3,t4], ...}  keyed by group letter
 let koReal = {};       // {ko16:[...], ko8:[...], ko4:[...], ko2:[...], final:[w,l]}
 let podiumReal = null; // [1st, 2nd, 3rd]
-let koMatches = {};    // {ko16:[[t1,t2,s1,s2],...], ko8:..., ko4:..., ko2:..., third:[[...]], finalm:[[...]]}
+let koScores = {};     // {matchId:[s1,s2]} — KO fixtures are auto-generated; only scores are stored
 
 function recalculateBonus(){
   bonus = {};
@@ -277,7 +277,7 @@ async function init(){
       if(remote.gs) groupsReal = Object.assign({}, remote.gs);
       if(remote.ko) koReal = Object.assign({}, remote.ko);
       if(remote.pd) podiumReal = remote.pd;
-      if(remote.km) koMatches = Object.assign({}, remote.km);
+      if(remote.ks) koScores = Object.assign({}, remote.ks);
     }
   } catch(e){}
 
@@ -353,35 +353,95 @@ function computeKo16(){
   return firsts.concat(seconds, thirds.slice(0,8).map(t=>t.team));
 }
 
-// Winners of decided KO matches (score entered, no draw — shoot-outs included in score)
-const KO_SOURCE = {ko8:'ko16', ko4:'ko8', ko2:'ko4', final:'ko2'};
-function winnersOf(matchPhase){
-  const ms = koMatches[matchPhase]||[];
-  const w = [];
-  ms.forEach(m=>{ if(m&&m[2]!=null&&m[3]!=null&&m[2]!==m[3]) w.push(m[2]>m[3]?m[0]:m[1]); });
-  return w;
+/* ---------- official FIFA 2026 knockout bracket (auto-generated) ---------- */
+// Annex C of the tournament regulations: which 3rd-placed group fills each
+// "1st vs 3rd" slot, keyed by the 8 qualifying 3rd-place groups (sorted).
+// Value = 8 group letters in slot order [1A,1B,1D,1E,1G,1I,1K,1L].
+const THIRDS_TABLE = {"ABCDEFGH":"HGBCAFDE","ABCDEFGI":"CGBDAFEI","ABCDEFGJ":"CGBDAFEJ","ABCDEFGK":"CGBDAFEK","ABCDEFGL":"CGBDAFLE","ABCDEFHI":"HEBCAFDI","ABCDEFHJ":"HJBCAFDE","ABCDEFHK":"HEBCAFDK","ABCDEFHL":"HFBCADLE","ABCDEFIJ":"CJBDAFEI","ABCDEFIK":"CEBDAFIK","ABCDEFIL":"CEBDAFLI","ABCDEFJK":"CJBDAFEK","ABCDEFJL":"CJBDAFLE","ABCDEFKL":"CEBDAFLK","ABCDEGHI":"HGBCADEI","ABCDEGHJ":"HGBCADEJ","ABCDEGHK":"HGBCADEK","ABCDEGHL":"HGBCADLE","ABCDEGIJ":"EGBCADIJ","ABCDEGIK":"EGBCADIK","ABCDEGIL":"EGBCADLI","ABCDEGJK":"EGBCADJK","ABCDEGJL":"EGBCADLJ","ABCDEGKL":"EGBCADLK","ABCDEHIJ":"HJBCADEI","ABCDEHIK":"HEBCADIK","ABCDEHIL":"HEBCADLI","ABCDEHJK":"HJBCADEK","ABCDEHJL":"HJBCADLE","ABCDEHKL":"HEBCADLK","ABCDEIJK":"EJBCADIK","ABCDEIJL":"EJBCADLI","ABCDEIKL":"EIBCADLK","ABCDEJKL":"EJBCADLK","ABCDFGHI":"HGBCAFDI","ABCDFGHJ":"HGBCAFDJ","ABCDFGHK":"HGBCAFDK","ABCDFGHL":"CGBDAFLH","ABCDFGIJ":"CGBDAFIJ","ABCDFGIK":"CGBDAFIK","ABCDFGIL":"CGBDAFLI","ABCDFGJK":"CGBDAFJK","ABCDFGJL":"CGBDAFLJ","ABCDFGKL":"CGBDAFLK","ABCDFHIJ":"HJBCAFDI","ABCDFHIK":"HFBCADIK","ABCDFHIL":"HFBCADLI","ABCDFHJK":"HJBCAFDK","ABCDFHJL":"CJBDAFLH","ABCDFHKL":"HFBCADLK","ABCDFIJK":"CJBDAFIK","ABCDFIJL":"CJBDAFLI","ABCDFIKL":"CIBDAFLK","ABCDFJKL":"CJBDAFLK","ABCDGHIJ":"HGBCADIJ","ABCDGHIK":"HGBCADIK","ABCDGHIL":"HGBCADLI","ABCDGHJK":"HGBCADJK","ABCDGHJL":"HGBCADLJ","ABCDGHKL":"HGBCADLK","ABCDGIJK":"CJBDAGIK","ABCDGIJL":"CJBDAGLI","ABCDGIKL":"IGBCADLK","ABCDGJKL":"CJBDAGLK","ABCDHIJK":"HJBCADIK","ABCDHIJL":"HJBCADLI","ABCDHIKL":"HIBCADLK","ABCDHJKL":"HJBCADLK","ABCDIJKL":"IJBCADLK","ABCEFGHI":"HGBCAFEI","ABCEFGHJ":"HGBCAFEJ","ABCEFGHK":"HGBCAFEK","ABCEFGHL":"HGBCAFLE","ABCEFGIJ":"EGBCAFIJ","ABCEFGIK":"EGBCAFIK","ABCEFGIL":"EGBCAFLI","ABCEFGJK":"EGBCAFJK","ABCEFGJL":"EGBCAFLJ","ABCEFGKL":"EGBCAFLK","ABCEFHIJ":"HJBCAFEI","ABCEFHIK":"HEBCAFIK","ABCEFHIL":"HEBCAFLI","ABCEFHJK":"HJBCAFEK","ABCEFHJL":"HJBCAFLE","ABCEFHKL":"HEBCAFLK","ABCEFIJK":"EJBCAFIK","ABCEFIJL":"EJBCAFLI","ABCEFIKL":"EIBCAFLK","ABCEFJKL":"EJBCAFLK","ABCEGHIJ":"HJBCAGEI","ABCEGHIK":"EGBCAHIK","ABCEGHIL":"EGBCAHLI","ABCEGHJK":"HJBCAGEK","ABCEGHJL":"HJBCAGLE","ABCEGHKL":"EGBCAHLK","ABCEGIJK":"EJBCAGIK","ABCEGIJL":"EJBCAGLI","ABCEGIKL":"EGBAICLK","ABCEGJKL":"EJBCAGLK","ABCEHIJK":"EJBCAHIK","ABCEHIJL":"EJBCAHLI","ABCEHIKL":"EIBCAHLK","ABCEHJKL":"EJBCAHLK","ABCEIJKL":"EJBAICLK","ABCFGHIJ":"HGBCAFIJ","ABCFGHIK":"HGBCAFIK","ABCFGHIL":"HGBCAFLI","ABCFGHJK":"HGBCAFJK","ABCFGHJL":"HGBCAFLJ","ABCFGHKL":"HGBCAFLK","ABCFGIJK":"CJBFAGIK","ABCFGIJL":"CJBFAGLI","ABCFGIKL":"IGBCAFLK","ABCFGJKL":"CJBFAGLK","ABCFHIJK":"HJBCAFIK","ABCFHIJL":"HJBCAFLI","ABCFHIKL":"HIBCAFLK","ABCFHJKL":"HJBCAFLK","ABCFIJKL":"IJBCAFLK","ABCGHIJK":"HJBCAGIK","ABCGHIJL":"HJBCAGLI","ABCGHIKL":"IGBCAHLK","ABCGHJKL":"HJBCAGLK","ABCGIJKL":"IJBCAGLK","ABCHIJKL":"IJBCAHLK","ABDEFGHI":"HGBDAFEI","ABDEFGHJ":"HGBDAFEJ","ABDEFGHK":"HGBDAFEK","ABDEFGHL":"HGBDAFLE","ABDEFGIJ":"EGBDAFIJ","ABDEFGIK":"EGBDAFIK","ABDEFGIL":"EGBDAFLI","ABDEFGJK":"EGBDAFJK","ABDEFGJL":"EGBDAFLJ","ABDEFGKL":"EGBDAFLK","ABDEFHIJ":"HJBDAFEI","ABDEFHIK":"HEBDAFIK","ABDEFHIL":"HEBDAFLI","ABDEFHJK":"HJBDAFEK","ABDEFHJL":"HJBDAFLE","ABDEFHKL":"HEBDAFLK","ABDEFIJK":"EJBDAFIK","ABDEFIJL":"EJBDAFLI","ABDEFIKL":"EIBDAFLK","ABDEFJKL":"EJBDAFLK","ABDEGHIJ":"HJBDAGEI","ABDEGHIK":"EGBDAHIK","ABDEGHIL":"EGBDAHLI","ABDEGHJK":"HJBDAGEK","ABDEGHJL":"HJBDAGLE","ABDEGHKL":"EGBDAHLK","ABDEGIJK":"EJBDAGIK","ABDEGIJL":"EJBDAGLI","ABDEGIKL":"EGBAIDLK","ABDEGJKL":"EJBDAGLK","ABDEHIJK":"EJBDAHIK","ABDEHIJL":"EJBDAHLI","ABDEHIKL":"EIBDAHLK","ABDEHJKL":"EJBDAHLK","ABDEIJKL":"EJBAIDLK","ABDFGHIJ":"HGBDAFIJ","ABDFGHIK":"HGBDAFIK","ABDFGHIL":"HGBDAFLI","ABDFGHJK":"HGBDAFJK","ABDFGHJL":"HGBDAFLJ","ABDFGHKL":"HGBDAFLK","ABDFGIJK":"FJBDAGIK","ABDFGIJL":"FJBDAGLI","ABDFGIKL":"IGBDAFLK","ABDFGJKL":"FJBDAGLK","ABDFHIJK":"HJBDAFIK","ABDFHIJL":"HJBDAFLI","ABDFHIKL":"HIBDAFLK","ABDFHJKL":"HJBDAFLK","ABDFIJKL":"IJBDAFLK","ABDGHIJK":"HJBDAGIK","ABDGHIJL":"HJBDAGLI","ABDGHIKL":"IGBDAHLK","ABDGHJKL":"HJBDAGLK","ABDGIJKL":"IJBDAGLK","ABDHIJKL":"IJBDAHLK","ABEFGHIJ":"HJBFAGEI","ABEFGHIK":"EGBFAHIK","ABEFGHIL":"EGBFAHLI","ABEFGHJK":"HJBFAGEK","ABEFGHJL":"HJBFAGLE","ABEFGHKL":"EGBFAHLK","ABEFGIJK":"EJBFAGIK","ABEFGIJL":"EJBFAGLI","ABEFGIKL":"EGBAIFLK","ABEFGJKL":"EJBFAGLK","ABEFHIJK":"EJBFAHIK","ABEFHIJL":"EJBFAHLI","ABEFHIKL":"EIBFAHLK","ABEFHJKL":"EJBFAHLK","ABEFIJKL":"EJBAIFLK","ABEGHIJK":"EJBAHGIK","ABEGHIJL":"EJBAHGLI","ABEGHIKL":"EGBAIHLK","ABEGHJKL":"EJBAHGLK","ABEGIJKL":"EJBAIGLK","ABEHIJKL":"EJBAIHLK","ABFGHIJK":"HJBFAGIK","ABFGHIJL":"HJBFAGLI","ABFGHIKL":"HGBAIFLK","ABFGHJKL":"HJBFAGLK","ABFGIJKL":"IJBFAGLK","ABFHIJKL":"HJBAIFLK","ABGHIJKL":"HJBAIGLK","ACDEFGHI":"HGECAFDI","ACDEFGHJ":"HGJCAFDE","ACDEFGHK":"HGECAFDK","ACDEFGHL":"HGFCADLE","ACDEFGIJ":"CGJDAFEI","ACDEFGIK":"CGEDAFIK","ACDEFGIL":"CGEDAFLI","ACDEFGJK":"CGJDAFEK","ACDEFGJL":"CGJDAFLE","ACDEFGKL":"CGEDAFLK","ACDEFHIJ":"HJECAFDI","ACDEFHIK":"HEFCADIK","ACDEFHIL":"HEFCADLI","ACDEFHJK":"HJECAFDK","ACDEFHJL":"HJFCADLE","ACDEFHKL":"HEFCADLK","ACDEFIJK":"CJEDAFIK","ACDEFIJL":"CJEDAFLI","ACDEFIKL":"CEIDAFLK","ACDEFJKL":"CJEDAFLK","ACDEGHIJ":"HGJCADEI","ACDEGHIK":"HGECADIK","ACDEGHIL":"HGECADLI","ACDEGHJK":"HGJCADEK","ACDEGHJL":"HGJCADLE","ACDEGHKL":"HGECADLK","ACDEGIJK":"EGJCADIK","ACDEGIJL":"EGJCADLI","ACDEGIKL":"EGICADLK","ACDEGJKL":"EGJCADLK","ACDEHIJK":"HJECADIK","ACDEHIJL":"HJECADLI","ACDEHIKL":"HEICADLK","ACDEHJKL":"HJECADLK","ACDEIJKL":"EJICADLK","ACDFGHIJ":"HGJCAFDI","ACDFGHIK":"HGFCADIK","ACDFGHIL":"HGFCADLI","ACDFGHJK":"HGJCAFDK","ACDFGHJL":"CGJDAFLH","ACDFGHKL":"HGFCADLK","ACDFGIJK":"CGJDAFIK","ACDFGIJL":"CGJDAFLI","ACDFGIKL":"CGIDAFLK","ACDFGJKL":"CGJDAFLK","ACDFHIJK":"HJFCADIK","ACDFHIJL":"HJFCADLI","ACDFHIKL":"HFICADLK","ACDFHJKL":"HJFCADLK","ACDFIJKL":"CJIDAFLK","ACDGHIJK":"HGJCADIK","ACDGHIJL":"HGJCADLI","ACDGHIKL":"HGICADLK","ACDGHJKL":"HGJCADLK","ACDGIJKL":"IGJCADLK","ACDHIJKL":"HJICADLK","ACEFGHIJ":"HGJCAFEI","ACEFGHIK":"HGECAFIK","ACEFGHIL":"HGECAFLI","ACEFGHJK":"HGJCAFEK","ACEFGHJL":"HGJCAFLE","ACEFGHKL":"HGECAFLK","ACEFGIJK":"EGJCAFIK","ACEFGIJL":"EGJCAFLI","ACEFGIKL":"EGICAFLK","ACEFGJKL":"EGJCAFLK","ACEFHIJK":"HJECAFIK","ACEFHIJL":"HJECAFLI","ACEFHIKL":"HEICAFLK","ACEFHJKL":"HJECAFLK","ACEFIJKL":"EJICAFLK","ACEGHIJK":"EGJCAHIK","ACEGHIJL":"EGJCAHLI","ACEGHIKL":"EGICAHLK","ACEGHJKL":"EGJCAHLK","ACEGIJKL":"EJICAGLK","ACEHIJKL":"EJICAHLK","ACFGHIJK":"HGJCAFIK","ACFGHIJL":"HGJCAFLI","ACFGHIKL":"HGICAFLK","ACFGHJKL":"HGJCAFLK","ACFGIJKL":"IGJCAFLK","ACFHIJKL":"HJICAFLK","ACGHIJKL":"HJICAGLK","ADEFGHIJ":"HGJDAFEI","ADEFGHIK":"HGEDAFIK","ADEFGHIL":"HGEDAFLI","ADEFGHJK":"HGJDAFEK","ADEFGHJL":"HGJDAFLE","ADEFGHKL":"HGEDAFLK","ADEFGIJK":"EGJDAFIK","ADEFGIJL":"EGJDAFLI","ADEFGIKL":"EGIDAFLK","ADEFGJKL":"EGJDAFLK","ADEFHIJK":"HJEDAFIK","ADEFHIJL":"HJEDAFLI","ADEFHIKL":"HEIDAFLK","ADEFHJKL":"HJEDAFLK","ADEFIJKL":"EJIDAFLK","ADEGHIJK":"EGJDAHIK","ADEGHIJL":"EGJDAHLI","ADEGHIKL":"EGIDAHLK","ADEGHJKL":"EGJDAHLK","ADEGIJKL":"EJIDAGLK","ADEHIJKL":"EJIDAHLK","ADFGHIJK":"HGJDAFIK","ADFGHIJL":"HGJDAFLI","ADFGHIKL":"HGIDAFLK","ADFGHJKL":"HGJDAFLK","ADFGIJKL":"IGJDAFLK","ADFHIJKL":"HJIDAFLK","ADGHIJKL":"HJIDAGLK","AEFGHIJK":"EGJFAHIK","AEFGHIJL":"EGJFAHLI","AEFGHIKL":"EGIFAHLK","AEFGHJKL":"EGJFAHLK","AEFGIJKL":"EJIFAGLK","AEFHIJKL":"EJIFAHLK","AEGHIJKL":"EJIAHGLK","AFGHIJKL":"HJIFAGLK","BCDEFGHI":"CGBDHFEI","BCDEFGHJ":"HGBCJFDE","BCDEFGHK":"CGBDHFEK","BCDEFGHL":"CGBDHFLE","BCDEFGIJ":"CGBDJFEI","BCDEFGIK":"CGBDEFIK","BCDEFGIL":"CGBDEFLI","BCDEFGJK":"CGBDJFEK","BCDEFGJL":"CGBDJFLE","BCDEFGKL":"CGBDEFLK","BCDEFHIJ":"CJBDHFEI","BCDEFHIK":"CEBDHFIK","BCDEFHIL":"CEBDHFLI","BCDEFHJK":"CJBDHFEK","BCDEFHJL":"CJBDHFLE","BCDEFHKL":"CEBDHFLK","BCDEFIJK":"CJBDEFIK","BCDEFIJL":"CJBDEFLI","BCDEFIKL":"CEBDIFLK","BCDEFJKL":"CJBDEFLK","BCDEGHIJ":"HGBCJDEI","BCDEGHIK":"EGBCHDIK","BCDEGHIL":"EGBCHDLI","BCDEGHJK":"HGBCJDEK","BCDEGHJL":"HGBCJDLE","BCDEGHKL":"EGBCHDLK","BCDEGIJK":"EGBCJDIK","BCDEGIJL":"EGBCJDLI","BCDEGIKL":"EGBCIDLK","BCDEGJKL":"EGBCJDLK","BCDEHIJK":"EJBCHDIK","BCDEHIJL":"EJBCHDLI","BCDEHIKL":"EIBCHDLK","BCDEHJKL":"EJBCHDLK","BCDEIJKL":"EJBCIDLK","BCDFGHIJ":"HGBCJFDI","BCDFGHIK":"CGBDHFIK","BCDFGHIL":"CGBDHFLI","BCDFGHJK":"HGBCJFDK","BCDFGHJL":"CGBDHFLJ","BCDFGHKL":"CGBDHFLK","BCDFGIJK":"CGBDJFIK","BCDFGIJL":"CGBDJFLI","BCDFGIKL":"CGBDIFLK","BCDFGJKL":"CGBDJFLK","BCDFHIJK":"CJBDHFIK","BCDFHIJL":"CJBDHFLI","BCDFHIKL":"CIBDHFLK","BCDFHJKL":"CJBDHFLK","BCDFIJKL":"CJBDIFLK","BCDGHIJK":"HGBCJDIK","BCDGHIJL":"HGBCJDLI","BCDGHIKL":"HGBCIDLK","BCDGHJKL":"HGBCJDLK","BCDGIJKL":"IGBCJDLK","BCDHIJKL":"HJBCIDLK","BCEFGHIJ":"HGBCJFEI","BCEFGHIK":"EGBCHFIK","BCEFGHIL":"EGBCHFLI","BCEFGHJK":"HGBCJFEK","BCEFGHJL":"HGBCJFLE","BCEFGHKL":"EGBCHFLK","BCEFGIJK":"EGBCJFIK","BCEFGIJL":"EGBCJFLI","BCEFGIKL":"EGBCIFLK","BCEFGJKL":"EGBCJFLK","BCEFHIJK":"EJBCHFIK","BCEFHIJL":"EJBCHFLI","BCEFHIKL":"EIBCHFLK","BCEFHJKL":"EJBCHFLK","BCEFIJKL":"EJBCIFLK","BCEGHIJK":"EJBCHGIK","BCEGHIJL":"EJBCHGLI","BCEGHIKL":"EGBCIHLK","BCEGHJKL":"EJBCHGLK","BCEGIJKL":"EJBCIGLK","BCEHIJKL":"EJBCIHLK","BCFGHIJK":"HGBCJFIK","BCFGHIJL":"HGBCJFLI","BCFGHIKL":"HGBCIFLK","BCFGHJKL":"HGBCJFLK","BCFGIJKL":"IGBCJFLK","BCFHIJKL":"HJBCIFLK","BCGHIJKL":"HJBCIGLK","BDEFGHIJ":"HGBDJFEI","BDEFGHIK":"EGBDHFIK","BDEFGHIL":"EGBDHFLI","BDEFGHJK":"HGBDJFEK","BDEFGHJL":"HGBDJFLE","BDEFGHKL":"EGBDHFLK","BDEFGIJK":"EGBDJFIK","BDEFGIJL":"EGBDJFLI","BDEFGIKL":"EGBDIFLK","BDEFGJKL":"EGBDJFLK","BDEFHIJK":"EJBDHFIK","BDEFHIJL":"EJBDHFLI","BDEFHIKL":"EIBDHFLK","BDEFHJKL":"EJBDHFLK","BDEFIJKL":"EJBDIFLK","BDEGHIJK":"EJBDHGIK","BDEGHIJL":"EJBDHGLI","BDEGHIKL":"EGBDIHLK","BDEGHJKL":"EJBDHGLK","BDEGIJKL":"EJBDIGLK","BDEHIJKL":"EJBDIHLK","BDFGHIJK":"HGBDJFIK","BDFGHIJL":"HGBDJFLI","BDFGHIKL":"HGBDIFLK","BDFGHJKL":"HGBDJFLK","BDFGIJKL":"IGBDJFLK","BDFHIJKL":"HJBDIFLK","BDGHIJKL":"HJBDIGLK","BEFGHIJK":"EJBFHGIK","BEFGHIJL":"EJBFHGLI","BEFGHIKL":"EGBFIHLK","BEFGHJKL":"EJBFHGLK","BEFGIJKL":"EJBFIGLK","BEFHIJKL":"EJBFIHLK","BEGHIJKL":"EJIBHGLK","BFGHIJKL":"HJBFIGLK","CDEFGHIJ":"CGJDHFEI","CDEFGHIK":"CGEDHFIK","CDEFGHIL":"CGEDHFLI","CDEFGHJK":"CGJDHFEK","CDEFGHJL":"CGJDHFLE","CDEFGHKL":"CGEDHFLK","CDEFGIJK":"CGEDJFIK","CDEFGIJL":"CGEDJFLI","CDEFGIKL":"CGEDIFLK","CDEFGJKL":"CGEDJFLK","CDEFHIJK":"CJEDHFIK","CDEFHIJL":"CJEDHFLI","CDEFHIKL":"CEIDHFLK","CDEFHJKL":"CJEDHFLK","CDEFIJKL":"CJEDIFLK","CDEGHIJK":"EGJCHDIK","CDEGHIJL":"EGJCHDLI","CDEGHIKL":"EGICHDLK","CDEGHJKL":"EGJCHDLK","CDEGIJKL":"EGICJDLK","CDEHIJKL":"EJICHDLK","CDFGHIJK":"CGJDHFIK","CDFGHIJL":"CGJDHFLI","CDFGHIKL":"CGIDHFLK","CDFGHJKL":"CGJDHFLK","CDFGIJKL":"CGIDJFLK","CDFHIJKL":"CJIDHFLK","CDGHIJKL":"HGICJDLK","CEFGHIJK":"EGJCHFIK","CEFGHIJL":"EGJCHFLI","CEFGHIKL":"EGICHFLK","CEFGHJKL":"EGJCHFLK","CEFGIJKL":"EGICJFLK","CEFHIJKL":"EJICHFLK","CEGHIJKL":"EJICHGLK","CFGHIJKL":"HGICJFLK","DEFGHIJK":"EGJDHFIK","DEFGHIJL":"EGJDHFLI","DEFGHIKL":"EGIDHFLK","DEFGHJKL":"EGJDHFLK","DEFGIJKL":"EGIDJFLK","DEFHIJKL":"EJIDHFLK","DEGHIJKL":"EJIDHGLK","DFGHIJKL":"HGIDJFLK","EFGHIJKL":"EJIFHGLK"};
+const THIRD_SLOT_ORDER = ['A','B','D','E','G','I','K','L'];
+
+// R32 fixtures: [type1,grp1, type2,grp2]. type W=winner, R=runner-up, T=third (grp=winner's slot letter)
+const R32_DEF = {
+  73:['R','A','R','B'], 74:['W','E','T','E'], 75:['W','F','R','C'], 76:['W','C','R','F'],
+  77:['W','I','T','I'], 78:['R','E','R','I'], 79:['W','A','T','A'], 80:['W','L','T','L'],
+  81:['W','D','T','D'], 82:['W','G','T','G'], 83:['R','K','R','L'], 84:['W','H','R','J'],
+  85:['W','B','T','B'], 86:['W','J','R','H'], 87:['W','K','T','K'], 88:['R','D','R','G']
+};
+// Later rounds: matchId -> [feederId1, feederId2] (winners advance; 103 takes the losers)
+const BR_FEED = {
+  89:[73,75], 90:[74,77], 91:[76,78], 92:[79,80], 93:[83,84], 94:[81,82], 95:[86,88], 96:[85,87],
+  97:[89,90], 98:[93,94], 99:[91,92], 100:[95,96], 101:[97,98], 102:[99,100], 104:[101,102]
+};
+const PHASE_MATCHES = {
+  ko16:[73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88],
+  ko8:[89,90,91,92,93,94,95,96], ko4:[97,98,99,100], ko2:[101,102], finals:[104,103]
+};
+const GROUP_LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+
+function groupPos(g,pos){ const eff=effectiveGroupOrder(g); return eff?eff.teams[pos]:null; }
+
+// Sorted 8-letter key of groups whose 3rd-placed team qualifies, or null if poules unfinished
+function bestThirdGroups(){
+  const arr=[];
+  for(const g of GROUP_LETTERS){
+    const st=computeGroupStats(g);
+    if(!st) return null;
+    const manual=groupsReal[g];
+    const order=(manual&&manual.every(Boolean))?manual:st.order;
+    const t3=order[2], s=st.stats[t3]||{pts:0,gd:0,gf:0};
+    arr.push({g, pts:s.pts, gd:s.gd, gf:s.gf});
+  }
+  arr.sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||a.g.localeCompare(b.g));
+  return arr.slice(0,8).map(x=>x.g).sort().join('');
 }
 
+// Winner/loser of a match given the resolved bracket B and stored scores
+function _matchResult(id,B,wantWinner){
+  const s=koScores[id], m=B[id];
+  if(!m||!m.t1||!m.t2||!s||s[0]==null||s[1]==null||s[0]===s[1]) return null;
+  const w=s[0]>s[1]; return (w===wantWinner)?m.t1:m.t2;
+}
+
+// Full bracket: {id:{t1,t2}} with teams resolved as far as results allow
+function autoBracket(){
+  const B={};
+  const key=bestThirdGroups();
+  const thirdMap=(key&&THIRDS_TABLE[key])
+    ? Object.fromEntries(THIRD_SLOT_ORDER.map((s,i)=>[s, THIRDS_TABLE[key][i]])) : null;
+  const slot=(ty,g)=>{
+    if(ty==='W') return groupPos(g,0);
+    if(ty==='R') return groupPos(g,1);
+    return thirdMap ? groupPos(thirdMap[g],2) : null; // T: 3rd of mapped group
+  };
+  for(const id in R32_DEF){ const d=R32_DEF[id]; B[id]={t1:slot(d[0],d[1]), t2:slot(d[2],d[3])}; }
+  for(const id of [89,90,91,92,93,94,95,96,97,98,99,100,101,102,104]){
+    const f=BR_FEED[id]; B[id]={t1:_matchResult(f[0],B,true), t2:_matchResult(f[1],B,true)};
+  }
+  B[103]={t1:_matchResult(101,B,false), t2:_matchResult(102,B,false)}; // losers of SF
+  return B;
+}
+
+// Teams that REACHED a phase = participants of its matches (override via koReal)
 function effectiveKo(phase){
   const manual = koReal[phase];
   if(manual && manual.length>0) return {teams:manual, auto:false};
-  if(phase==='ko16'){
-    const comp = computeKo16();
-    if(comp) return {teams:comp, auto:true};
-  } else if(KO_SOURCE[phase]){
-    const w = winnersOf(KO_SOURCE[phase]);
-    if(w.length>0) return {teams:w, auto:true};
-  }
-  return null;
+  const B=autoBracket();
+  const ids = phase==='ko16' ? PHASE_MATCHES.ko16
+            : phase==='ko8'  ? PHASE_MATCHES.ko8
+            : phase==='ko4'  ? PHASE_MATCHES.ko4
+            : phase==='ko2'  ? PHASE_MATCHES.ko2
+            : phase==='final'? [104] : null;
+  if(!ids) return null;
+  const teams=[];
+  ids.forEach(id=>{ const m=B[id]; if(m){ if(m.t1)teams.push(m.t1); if(m.t2)teams.push(m.t2); } });
+  return teams.length>0 ? {teams, auto:true} : null;
 }
 
-// Podium derived from final + third-place match if not entered manually
+// Podium from final (104) + third-place match (103), unless entered manually
 function effectivePodium(){
   if(podiumReal && podiumReal.some(Boolean)) return {pod:podiumReal, auto:false};
-  const f=(koMatches.finalm||[])[0], t=(koMatches.third||[])[0];
-  const pod=[null,null,null];
-  if(f&&f[2]!=null&&f[3]!=null&&f[2]!==f[3]){ pod[0]=f[2]>f[3]?f[0]:f[1]; pod[1]=f[2]>f[3]?f[1]:f[0]; }
-  if(t&&t[2]!=null&&t[3]!=null&&t[2]!==t[3]){ pod[2]=t[2]>t[3]?t[0]:t[1]; }
+  const B=autoBracket();
+  const pod=[_matchResult(104,B,true), _matchResult(104,B,false), _matchResult(103,B,true)];
   return pod.some(Boolean) ? {pod, auto:true} : null;
 }
 function totals(){
@@ -474,6 +534,8 @@ function renderDaybar(){
   if(sel) sel.scrollIntoView({inline:'center',block:'nearest'});
 }
 
+/* mkey for a match id: phase key for 73-102, special for final/3rd-place */
+function mkeyForMatch(id, phaseKey){ return id===104?'finalm' : id===103?'third' : phaseKey; }
 /* what each player predicted to advance from this KO match */
 function koPickFor(p, mkey, t1, t2){
   if(mkey==='third'){ const c=(DB.podium_preds[p]||[])[2]; return [t1,t2].filter(t=>t===c); }
@@ -488,36 +550,33 @@ function koPtsFor(mkey){
   return (KO_CAL.find(x=>x.key===mkey)||{}).pts||0;
 }
 
-function ensureTeamDatalist(){
-  if(document.getElementById('teamsdl')) return;
-  const dl=document.createElement('datalist'); dl.id='teamsdl';
-  const set=new Set();
-  for(const g in DB.groups) for(const p in DB.groups[g]) (DB.groups[g][p]||[]).forEach(t=>{ if(t) set.add(t); });
-  [...set].sort().forEach(t=>{ const o=document.createElement('option'); o.value=t; dl.appendChild(o); });
-  document.body.appendChild(dl);
-}
-
-function koMatchCard(mkey, m, mi, slabel){
-  const t1=m[0], t2=m[1], s1=m[2], s2=m[3];
+function koMatchCard(mkey, id, B, slabel){
+  const m=B[id]||{};
+  const t1=m.t1, t2=m.t2, known=!!(t1&&t2);
+  const sc=koScores[id]||[null,null];
+  const s1=sc[0], s2=sc[1];
   const hasScore=s1!=null&&s2!=null;
-  const decided=hasScore&&s1!==s2;
+  const decided=known&&hasScore&&s1!==s2;
   const winner=decided?(s1>s2?t1:t2):null;
   const pts=koPtsFor(mkey);
   const card=document.createElement('div'); card.className='card';
-  const lbl=slabel||((KO_CAL.find(x=>x.key===mkey)||{}).label+' de finale');
+  const lbl=(slabel||((KO_CAL.find(x=>x.key===mkey)||{}).label+' de finale'))+' · M'+id;
+  const teamsHtml = known ? (t1+' – '+t2)
+    : '<span style="color:var(--muted)">'+(t1||'?')+' – '+(t2||'?')+'</span>';
   let head='<div class="card-head"><div>'
     +'<div class="mlabel">'+lbl+'</div>'
-    +'<div class="teams">'+t1+' – '+t2+'</div></div>'
-    +(hasScore?'<div class="result-pill">'+s1+' – '+s2+'</div>':'<div class="result-pill empty">à jouer</div>')
+    +'<div class="teams">'+teamsHtml+'</div></div>'
+    +(hasScore?'<div class="result-pill">'+s1+' – '+s2+'</div>'
+              :'<div class="result-pill empty">'+(known?'à jouer':'à venir')+'</div>')
     +'</div>';
   let grid='<div class="pgrid">';
   DB.players.forEach(p=>{
-    const picks=koPickFor(p,mkey,t1,t2);
+    const picks=known?koPickFor(p,mkey,t1,t2):[];
     let cls='', extra='';
     if(decided){
       if(picks.includes(winner)){cls=' good';extra='<span class="pts">+'+pts+'</span>';}
       else cls=' zero';
-    } else if(picks.length===0) cls=' zero';
+    } else if(known && picks.length===0) cls=' zero';
     grid+='<div class="pcell'+cls+'"><div class="pname">'+p+'</div>'
       +'<div class="psc" style="font-family:Inter;font-size:.68rem;font-weight:600;letter-spacing:0;line-height:1.25">'
       +(picks.length?picks.join(' / '):'—')+'</div>'+extra+'</div>';
@@ -527,83 +586,58 @@ function koMatchCard(mkey, m, mi, slabel){
   if(adminMode){
     const bar=document.createElement('div');
     bar.style.cssText='display:flex;gap:8px;align-items:center;padding:9px 12px;border-top:1px solid var(--stroke)';
-    const mkInp=(side)=>{
-      const inp=document.createElement('input');
-      inp.type='number'; inp.inputMode='numeric'; inp.min=0; inp.max=20;
-      inp.style.cssText='width:46px;height:38px;text-align:center;font-family:Bebas Neue;font-size:1.2rem;background:var(--pitch);color:var(--chalk);border:1px solid var(--stroke);border-radius:9px';
-      inp.value=m[2+side]==null?'':m[2+side];
-      inp.onchange=()=>{
-        const v=inp.value;
-        m[2+side]= v===''?null:Math.max(0,Math.min(20,parseInt(v,10)||0));
-        renderDay(); renderLB(); renderPhases();
+    if(known){
+      const mkInp=(side)=>{
+        const inp=document.createElement('input');
+        inp.type='number'; inp.inputMode='numeric'; inp.min=0; inp.max=20;
+        inp.style.cssText='width:46px;height:38px;text-align:center;font-family:Bebas Neue;font-size:1.2rem;background:var(--pitch);color:var(--chalk);border:1px solid var(--stroke);border-radius:9px';
+        inp.value=sc[side]==null?'':sc[side];
+        inp.onchange=()=>{
+          const cur=(koScores[id]||[null,null]).slice();
+          const v=inp.value;
+          cur[side]= v===''?null:Math.max(0,Math.min(20,parseInt(v,10)||0));
+          if(cur[0]==null&&cur[1]==null) delete koScores[id]; else koScores[id]=cur;
+          renderDay(); renderLB(); renderPhases();
+        };
+        return inp;
       };
-      return inp;
-    };
-    const hint=document.createElement('span');
-    hint.style.cssText='font-size:.66rem;color:var(--muted);flex:1';
-    hint.textContent='Score final (t.a.b. inclus — pas d’égalité)';
-    const del=document.createElement('button');
-    del.className='btn ghost'; del.textContent='✕'; del.style.cssText='padding:6px 11px;margin:0';
-    del.onclick=()=>{
-      if(!confirm('Supprimer ce match ?')) return;
-      koMatches[mkey].splice(mi,1);
-      if(koMatches[mkey].length===0) delete koMatches[mkey];
-      renderDay(); renderLB(); renderPhases();
-    };
-    const dash=document.createElement('span'); dash.className='dash'; dash.textContent='–';
-    bar.appendChild(hint); bar.appendChild(mkInp(0)); bar.appendChild(dash); bar.appendChild(mkInp(1)); bar.appendChild(del);
+      const hint=document.createElement('span');
+      hint.style.cssText='font-size:.66rem;color:var(--muted);flex:1';
+      hint.textContent='Score final (t.a.b. inclus — pas d’égalité)';
+      const dash=document.createElement('span'); dash.className='dash'; dash.textContent='–';
+      bar.appendChild(hint); bar.appendChild(mkInp(0)); bar.appendChild(dash); bar.appendChild(mkInp(1));
+    } else {
+      const hint=document.createElement('span');
+      hint.style.cssText='font-size:.66rem;color:var(--muted);flex:1';
+      hint.textContent='Équipes pas encore déterminées';
+      bar.appendChild(hint);
+    }
     card.appendChild(bar);
   }
   return card;
 }
 
-function koAddForm(mkey, slabel){
-  ensureTeamDatalist();
-  const block=document.createElement('div'); block.className='admin-block';
-  block.innerHTML='<label>Ajouter '+(slabel?'le match « '+slabel+' »':'un match')+'</label>';
-  const row=document.createElement('div');
-  row.style.cssText='display:flex;gap:8px;align-items:center';
-  const mkTeam=()=>{
-    const inp=document.createElement('input');
-    inp.className='admin-grp-inp'; inp.type='text'; inp.setAttribute('list','teamsdl');
-    inp.placeholder='Équipe…'; inp.style.flex='1';
-    return inp;
-  };
-  const i1=mkTeam(), i2=mkTeam();
-  const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Ajouter'; btn.style.margin='0';
-  btn.onclick=()=>{
-    const a=i1.value.trim(), b=i2.value.trim();
-    if(!a||!b){ toast('Indique les deux équipes'); return; }
-    if(!koMatches[mkey]) koMatches[mkey]=[];
-    koMatches[mkey].push([a,b,null,null]);
-    renderDay(); renderPhases();
-  };
-  row.appendChild(i1); row.appendChild(i2); row.appendChild(btn);
-  block.appendChild(row);
-  return block;
-}
-
 function renderKoDay(key){
   const wrap=document.getElementById('daymatches');
   wrap.innerHTML='';
-  const sections = key==='finals'
-    ? [['third','3e place'],['finalm','Finale']]
-    : [[key,null]];
-  let any=false;
-  sections.forEach(([mkey,slabel])=>{
-    const ms=koMatches[mkey]||[];
-    ms.forEach((m,mi)=>{ any=true; wrap.appendChild(koMatchCard(mkey,m,mi,slabel)); });
-    if(adminMode){
-      const single=(mkey==='third'||mkey==='finalm');
-      if(!single || ms.length<1) wrap.appendChild(koAddForm(mkey,slabel));
-    }
-  });
-  if(!any && !adminMode){
+  const B=autoBracket();
+  const ids=PHASE_MATCHES[key]||[];
+  const slabelOf=(id)=> id===104?'Finale' : id===103?'Match pour la 3e place' : null;
+  let anyKnown=false;
+  ids.forEach(id=>{ const m=B[id]||{}; if(m.t1&&m.t2) anyKnown=true; });
+  if(!anyKnown){
     const ph=KO_CAL.find(x=>x.key===key);
+    const corrected=Object.keys(results).filter(k=>Array.isArray(results[k])).length;
     const d=document.createElement('div'); d.className='sharebox';
-    d.innerHTML='<p>Les affiches ('+ph.name+') apparaîtront ici dès qu’elles seront connues.</p>';
+    const why = key==='ko16'
+      ? 'Les affiches se génèrent automatiquement dès que les groupes concernés sont terminés (les matchs avec un 3e attendent la fin des 72 matchs de poules). '+corrected+'/72 corrigés.'
+      : 'Les affiches ('+ph.name+') se génèrent automatiquement dès que les matchs du tour précédent ont un score.';
+    d.innerHTML='<p>'+why+'</p>';
     wrap.appendChild(d);
   }
+  ids.forEach(id=>{
+    wrap.appendChild(koMatchCard(mkeyForMatch(id,key), id, B, slabelOf(id)));
+  });
 }
 
 function renderDay(){
@@ -784,7 +818,6 @@ function renderLB(){
 }
 
 /* ---------- phases view ---------- */
-const GROUP_LETTERS=['A','B','C','D','E','F','G','H','I','J','K','L'];
 const KO_PHASES=[
   {key:'ko16',label:'1/16',pts:5},{key:'ko8',label:'1/8',pts:9},
   {key:'ko4',label:'1/4',pts:15},{key:'ko2',label:'1/2',pts:22},
@@ -1062,9 +1095,9 @@ document.getElementById('btn-publish').onclick=async()=>{
     for(const g in groupsReal){ if(groupsReal[g]&&groupsReal[g].some(Boolean)) cleanGs[g]=groupsReal[g]; }
     const cleanKo={};
     for(const ph in koReal){ if(koReal[ph]&&koReal[ph].length>0) cleanKo[ph]=koReal[ph]; }
-    const cleanKm={};
-    for(const ph in koMatches){ if(koMatches[ph]&&koMatches[ph].length>0) cleanKm[ph]=koMatches[ph]; }
-    const payload = JSON.stringify({r:clean,ca:correctAnswers,gs:cleanGs,ko:cleanKo,pd:podiumReal||null,km:cleanKm}, null, 2);
+    const cleanKs={};
+    for(const id in koScores){ if(Array.isArray(koScores[id])&&koScores[id].some(x=>x!=null)) cleanKs[id]=koScores[id]; }
+    const payload = JSON.stringify({r:clean,ca:correctAnswers,gs:cleanGs,ko:cleanKo,pd:podiumReal||null,ks:cleanKs}, null, 2);
     const token = getGithubToken();
     if(token){
       const content = btoa(unescape(encodeURIComponent(payload)));
@@ -1155,7 +1188,7 @@ let _lastUpdateTime = null;
 function _formatTime(d){ const h=String(d.getHours()).padStart(2,'0'); const m=String(d.getMinutes()).padStart(2,'0'); const s=String(d.getSeconds()).padStart(2,'0'); return h+':'+m+':'+s; }
 function _updateLastUpdateUI(){ const el = document.getElementById('lastUpdate'); if(el) el.textContent = _lastUpdateTime ? 'Mise à jour : '+_formatTime(_lastUpdateTime) : '—'; }
 
-function _makeClean(obj){ const c={}; if(obj && obj.r) c.r = obj.r; else if(obj) c.r = obj; if(obj && obj.b) c.b = obj.b; else if(obj && obj.b===undefined) c.b = {}; if(obj){ c.ca=obj.ca||{}; c.gs=obj.gs||{}; c.ko=obj.ko||{}; c.pd=obj.pd||null; c.km=obj.km||{}; } return c; }
+function _makeClean(obj){ const c={}; if(obj && obj.r) c.r = obj.r; else if(obj) c.r = obj; if(obj && obj.b) c.b = obj.b; else if(obj && obj.b===undefined) c.b = {}; if(obj){ c.ca=obj.ca||{}; c.gs=obj.gs||{}; c.ko=obj.ko||{}; c.pd=obj.pd||null; c.ks=obj.ks||{}; } return c; }
 
 function _showRemoteBanner(remote){
   if(document.getElementById('remoteUpdate')) return;
@@ -1165,7 +1198,7 @@ function _showRemoteBanner(remote){
   div.innerHTML = 'Nouveaux résultats disponibles — <button id="btn-reload-remote" class="btn">Recharger</button> <button id="btn-apply-remote" class="btn ghost">Appliquer localement</button> <button id="btn-ignore-remote" class="btn ghost">Ignorer</button>';
   document.body.appendChild(div);
   document.getElementById('btn-reload-remote').onclick=()=>{ try{ localStorage.removeItem(SKEY); }catch(e){} location.reload(); };
-  document.getElementById('btn-apply-remote').onclick=()=>{ try{ results = Object.assign({}, remote.r); correctAnswers = Object.assign({}, remote.ca || {}); if(remote.gs) groupsReal=Object.assign({},remote.gs); if(remote.ko) koReal=Object.assign({},remote.ko); if(remote.pd) podiumReal=remote.pd; if(remote.km) koMatches=Object.assign({},remote.km); recalculateBonus(); persist(); renderDay(); renderEntry(); renderBonus(); renderLB(); renderPhases(); toast('Résultats appliqués'); }catch(e){} document.getElementById('remoteUpdate')?.remove(); };
+  document.getElementById('btn-apply-remote').onclick=()=>{ try{ results = Object.assign({}, remote.r); correctAnswers = Object.assign({}, remote.ca || {}); if(remote.gs) groupsReal=Object.assign({},remote.gs); if(remote.ko) koReal=Object.assign({},remote.ko); if(remote.pd) podiumReal=remote.pd; if(remote.ks) koScores=Object.assign({},remote.ks); recalculateBonus(); persist(); renderDay(); renderEntry(); renderBonus(); renderLB(); renderPhases(); toast('Résultats appliqués'); }catch(e){} document.getElementById('remoteUpdate')?.remove(); };
   document.getElementById('btn-ignore-remote').onclick=()=>{ document.getElementById('remoteUpdate')?.remove(); };
 }
 
