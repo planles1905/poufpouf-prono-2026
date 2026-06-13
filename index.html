@@ -227,7 +227,7 @@ nav button.sel{color:var(--gold)}
   <button data-v="day" class="sel"><span class="ic">⚽</span>Matchs</button>
   <button data-v="entry"><span class="ic">0–0</span>Correction</button>
   <button data-v="lb"><span class="ic">№1</span>Classement</button>
-  <button data-v="phases"><span class="ic">★</span>Groupe</button>
+  <button data-v="phases"><span class="ic">★</span>Groupes</button>
   <button data-v="qb"><span class="ic">?</span>QB</button>
 </nav>
 <div class="toast" id="toast"></div>
@@ -519,10 +519,16 @@ function _d(iso){ return new Date(iso.slice(0,10)+'T00:00'); }
 function fmtDayChip(date){ const d=_d(date); return JOURS[d.getDay()]+' '+d.getDate()+' '+MOIS[d.getMonth()]; }
 function fmtKick(iso){ if(!iso) return ''; const d=_d(iso); return JOURS[d.getDay()]+' '+d.getDate()+' · '+iso.slice(11,16); }
 
-// KO matches grouped by real Paris date, sorted by kickoff
+// "Journée foot" : un match qui débute après minuit (avant midi) est rattaché à la veille
+function footballDay(iso){
+  if(+iso.slice(11,13) >= 12) return iso.slice(0,10);
+  const d=_d(iso); d.setDate(d.getDate()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// KO matches grouped by football day, sorted by kickoff
 const KO_DAYS=(()=>{
   const by={};
-  for(const id in KO_DT){ const day=KO_DT[id].slice(0,10); (by[day]=by[day]||[]).push(+id); }
+  for(const id in KO_DT){ const day=footballDay(KO_DT[id]); (by[day]=by[day]||[]).push(+id); }
   return Object.keys(by).sort().map(day=>({date:day, ids:by[day].sort((a,b)=>KO_DT[a].localeCompare(KO_DT[b])||a-b)}));
 })();
 function roundOfMatch(id){ id=+id; return id<=88?'ko16':id<=96?'ko8':id<=100?'ko4':id<=102?'ko2':id===103?'third':'finalm'; }
